@@ -1,13 +1,12 @@
-# Sightline
+# Lighthouse
 
-Geospatial infrastructure intelligence platform for discovering and analyzing physical-world assets using OpenStreetMap data.
+Geospatial infrastructure intelligence platform for discovering and analyzing physical-world assets using OpenStreetMap data, with optional AI-assisted aggregate summaries.
 
-![screenshot2](screenshots/screenshot2.png)
-![screenshot](screenshots/screenshot.png)
+Lighthouse is based on [Sightline](https://github.com/ni5arga/sightline) by [ni5arga](https://github.com/ni5arga), used under the MIT License.
 
 ## Overview
 
-Sightline enables searching, monitoring, and analyzing real-world infrastructure including:
+Lighthouse enables searching, monitoring, and analyzing real-world infrastructure including:
 
 - Telecommunications towers and data centers
 - Power plants, substations, and energy storage
@@ -34,36 +33,56 @@ flowchart TB
         SearchBar["SearchBar"]
         Filters["Filters"]
         ResultList["ResultList"]
+        SummaryCard["SummaryCard"]
         MapView["MapView — Leaflet.js"]
     end
 
     subgraph BE["Backend"]
-        route["route.ts — Request Handler"]
+        route["/api/search — Request Handler"]
+        summaryRoute["/api/summary — Summary Handler"]
         parser["parser.ts — NLP Engine"]
         geo["geo.ts — Geocoding"]
         overpass["overpass.ts — OSM Query Builder"]
+        summary["summary.ts — Provider Chain"]
         cache["cache.ts — Cache Layer"]
     end
 
     subgraph EX["External APIs"]
         Nominatim["Nominatim — Geocoding API"]
         OverpassAPI["Overpass API — OSM Data"]
+        Exa["Exa — Optional Grounding"]
+        LLM["OpenRouter / Ollama — Optional LLM"]
     end
 
     SearchBar & Filters & ResultList & MapView -->|"POST /api/search"| route
+    SummaryCard -->|"POST /api/summary"| summaryRoute
 
     route -->|"parse query"| parser
     route -->|"resolve location"| geo
     route -->|"fetch POIs"| overpass
     route <-->|"read / write"| cache
+    summaryRoute -->|"aggregate stats only"| summary
 
     geo -->|"geocode"| Nominatim
     overpass -->|"QL query"| OverpassAPI
+    summary -.->|"optional"| Exa
+    summary -.->|"optional"| LLM
 
-    class SearchBar,Filters,ResultList,MapView frontend
-    class route,parser,geo,overpass,cache backend
-    class Nominatim,OverpassAPI external
+    class SearchBar,Filters,ResultList,SummaryCard,MapView frontend
+    class route,summaryRoute,parser,geo,overpass,summary,cache backend
+    class Nominatim,OverpassAPI,Exa,LLM external
 ```
+
+## AI Summaries
+
+After each successful search, Lighthouse requests a short summary of the aggregate result set.
+
+- Only aggregate data is sent: query, parsed scope, total count, top feature types/operators, and truncation status. Individual asset names, tags, and coordinates are never sent.
+- Provider order: optional Exa grounding, then OpenRouter, then Ollama, then Exa Answer, then a deterministic local fallback.
+- Exa grounding is used only when an LLM provider is configured. Exa Answer is used only if both OpenRouter and Ollama fail or are unavailable.
+- AI summaries are cached for 6 hours, deduplicated in flight, and limited to 6 requests per IP per minute and 40 provider calls per day by default.
+- Local summaries are always available without API keys and are not cached.
+- AI output is generated from aggregate counts and may be incomplete or wrong. Verify important details against authoritative sources.
 
 ## Data Sources
 
@@ -78,6 +97,10 @@ Geographic resolution uses the [Nominatim](https://nominatim.openstreetmap.org/)
 ### Overpass API
 
 Infrastructure queries execute against the [Overpass API](https://overpass-api.de/), which provides read-only access to OSM data.
+
+### Exa (Optional)
+
+When configured, [Exa](https://exa.ai/) can provide public reference context for AI summaries and act as the final AI fallback. Exa is never used as the source of infrastructure counts or locations.
 
 ## Query Syntax
 
@@ -466,17 +489,27 @@ type:airport country:france
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - npm
 
 ### Setup
 
 ```bash
 npm install
+cp .env.example .env.local   # optional; only needed for AI providers
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### Tests and Checks
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
 
 ### Project Structure
 
@@ -486,13 +519,18 @@ app/
 ├── layout.tsx            # Root layout
 ├── globals.css           # Global styles
 └── api/
-    └── search/
-        └── route.ts      # Search API endpoint
+    ├── search/
+    │   └── route.ts      # Search API endpoint
+    ├── summary/
+    │   └── route.ts      # AI summary endpoint
+    └── nominatim/
+        └── route.ts      # Rate-limited geocoding proxy
 
 components/
 ├── SearchBar.tsx         # Query input
 ├── Filters.tsx           # Filter sidebar
-├── ResultList.tsx        # Results display
+├── ResultList.tsx        # Paginated results display
+├── SummaryCard.tsx       # AI/local summary display
 ├── MapView.tsx           # Leaflet map
 ├── ShareButton.tsx       # Share functionality
 └── ui/
@@ -503,8 +541,10 @@ lib/
 ├── parser.ts             # Query parsing and NLP
 ├── geo.ts                # Nominatim integration
 ├── overpass.ts           # Overpass API queries
+├── summary.ts            # Provider chain and local summary
 ├── cache.ts              # In-memory caching
 ├── search-index.ts       # Search indexing
+└── __tests__/            # Parser, Overpass, and summary tests
 ```
 
 ## Deployment
@@ -518,12 +558,30 @@ vercel
 
 ### Environment Variables
 
-No environment variables required. The application uses public OpenStreetMap APIs.
+No environment variables are required. Without provider keys, Lighthouse uses the deterministic local summary and public OpenStreetMap APIs.
+
+See `.env.example` for optional OpenRouter, Ollama, and Exa configuration. Provider requests are server-side; keys are never exposed to the browser.
+
+| Variable | Purpose |
+|----------|---------|
+| `OPENROUTER_API_KEY` | Primary AI summary provider |
+| `OPENROUTER_MODEL` | OpenRouter model (default `openrouter/free`) |
+| `OLLAMA_API_KEY` | Ollama Cloud key |
+| `OLLAMA_BASE_URL` | Local or self-hosted Ollama base URL |
+| `OLLAMA_MODEL` | Ollama model; auto-discovered if omitted |
+| `EXA_API_KEY` | Optional Exa grounding and final answer fallback |
+| `EXA_SEARCH_TYPE` | Exa search type (default `auto`) |
+| `EXA_NUM_RESULTS` | Grounding results per summary (default 4) |
+| `SUMMARY_RATE_LIMIT_PER_MINUTE` | Per-IP AI requests per minute (default 6) |
+| `SUMMARY_DAILY_LIMIT` | Global AI provider calls per day (default 40) |
+| `SUMMARY_PROVIDER_TIMEOUT_MS` | Per-provider timeout (default 12000) |
+| `SUMMARY_CACHE_TTL_MS` | AI summary cache TTL (default 6 hours) |
 
 ### API Rate Limits
 
 - Nominatim: 1 request/second (enforced by Nominatim usage policy)
 - Overpass API: Fair use, avoid heavy queries
+- AI summaries: local fallback is unlimited; provider calls are rate-limited as described above
 
 ## Responsible Use
 
@@ -536,9 +594,10 @@ This tool accesses publicly available OpenStreetMap data. Users must:
 5. Acknowledge that OSM data may be incomplete or inaccurate
 6. Not perform bulk automated queries that overload public infrastructure
 7. For issues regarding the map, please refer to [https://www.openstreetmap.org/fixthemap](https://www.openstreetmap.org/fixthemap)
+8. Treat AI summaries as unverified context, not as an authoritative assessment
 
 The presence or absence of infrastructure in OSM should not be taken as authoritative. Always verify critical information through official sources.
 
 ## License
 
-MIT
+MIT. Lighthouse is based on [Sightline](https://github.com/ni5arga/sightline) by [ni5arga](https://github.com/ni5arga); the original copyright notice is retained in [LICENSE](LICENSE).

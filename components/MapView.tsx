@@ -75,7 +75,7 @@ const LAYERS: Readonly<Record<string, LayerConfig>> = Object.freeze({
 });
 
 const DEFAULT_LAYER_KEY = "osm" as const;
-const LAYER_STORAGE_KEY = "sightline-map-layer" as const;
+const LAYER_STORAGE_KEY = "lighthouse-map-layer" as const;
 const TRANSPARENT_TILE =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 const TILE_ERROR_THRESHOLD = 5;
