@@ -16,6 +16,8 @@ const OVERPASS_CH_BASE = 'https://api.overpass.ch/v1';
 interface OverpassEndpoint {
   url: string;
   label: string;
+  /** Keyed instance: worth a short retry when it reports itself busy. */
+  keyed?: boolean;
 }
 
 function getOverpassEndpoints(): OverpassEndpoint[] {
@@ -29,6 +31,7 @@ function getOverpassEndpoints(): OverpassEndpoint[] {
     endpoints.unshift({
       url: `${OVERPASS_CH_BASE}/${encodeURIComponent(key)}/interpreter`,
       label: 'overpass.ch',
+      keyed: true,
     });
   }
 
@@ -183,6 +186,42 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeout: numb
   }
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * The keyed free plan runs one query at a time, so a second search started
+ * while the first is still running gets a 429 with Retry-After. Wait briefly
+ * and retry once instead of dropping to the loaded public mirrors.
+ */
+async function fetchWithBusyRetry(
+  endpoint: OverpassEndpoint,
+  options: RequestInit,
+  timeout: number,
+  startedAt: number,
+): Promise<Response> {
+  const response = await fetchWithTimeout(endpoint.url, options, timeout);
+
+  if (!endpoint.keyed || response.status !== 429) {
+    return response;
+  }
+
+  const retryAfterSeconds = Number(response.headers?.get('retry-after')) || 1;
+  const waitMs = Math.min(Math.max(retryAfterSeconds, 0.2) * 1000, 2000);
+  const remainingMs = OVERALL_BUDGET_MS - (Date.now() - startedAt);
+
+  if (remainingMs - waitMs < 3000) {
+    return response;
+  }
+
+  await sleep(waitMs);
+
+  return fetchWithTimeout(
+    endpoint.url,
+    options,
+    Math.min(timeout, OVERALL_BUDGET_MS - (Date.now() - startedAt)),
+  );
+}
+
 function getResultWarning(remark: string): string {
   const normalized = remark.toLowerCase();
 
@@ -207,7 +246,8 @@ export async function executeQuery(query: string): Promise<OverpassQueryResult> 
   const endpoints = getOverpassEndpoints();
 
   for (let i = 0; i < endpoints.length; i++) {
-    const { url: apiEndpoint, label } = endpoints[i];
+    const endpoint = endpoints[i];
+    const { label } = endpoint;
     const remainingMs = OVERALL_BUDGET_MS - (Date.now() - startedAt);
     if (remainingMs <= 1500) {
       break;
@@ -215,14 +255,14 @@ export async function executeQuery(query: string): Promise<OverpassQueryResult> 
     const attemptTimeout = Math.min(TIMEOUT_MS, remainingMs);
 
     try {
-      const response = await fetchWithTimeout(apiEndpoint, {
+      const response = await fetchWithBusyRetry(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'User-Agent': USER_AGENT
         },
         body: `data=${encodeURIComponent(query)}`
-      }, attemptTimeout);
+      }, attemptTimeout, startedAt);
 
       if (!response.ok) {
         if (response.status === 429) {
