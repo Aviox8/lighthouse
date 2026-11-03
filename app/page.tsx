@@ -22,17 +22,6 @@ const MapView = dynamic(() => import("@/components/MapView"), {
 
 type MobileTab = "map" | "results" | "filters";
 
-const INITIAL_QUERIES = [
-  "airports near london",
-  "hospitals in paris",
-  "power plants in texas",
-  "railway stations in delhi",
-  "towers in dubai",
-  "stadiums in berlin",
-  "museums in rome",
-  "bridges in new york",
-];
-
 /** Custom hook to detect screen size breakpoints */
 function useBreakpoint() {
   const [breakpoint, setBreakpoint] = useState<"mobile" | "desktop">("desktop");
@@ -158,11 +147,18 @@ function HomeContent() {
           signal: controller.signal,
         });
 
-        const data = await response.json();
+        const contentType = response.headers.get("content-type") || "";
+        const data = contentType.includes("application/json")
+          ? await response.json()
+          : null;
         if (controller.signal.aborted) return;
 
-        if (!response.ok) {
-          setError((data as SearchError).error);
+        if (!response.ok || !data) {
+          setError(
+            data && typeof data.error === "string"
+              ? (data as SearchError).error
+              : "Search service timed out or unavailable. Try a smaller area.",
+          );
           setSearchResult(null);
         } else {
           setSearchResult(data as SearchResult);
@@ -239,14 +235,17 @@ function HomeContent() {
           signal: controller.signal,
         });
 
-        const data = await response.json();
+        const contentType = response.headers.get("content-type") || "";
+        const data = contentType.includes("application/json")
+          ? await response.json()
+          : null;
         if (controller.signal.aborted) return;
 
-        if (!response.ok) {
+        if (!response.ok || !data) {
           setSummaryError(
-            typeof data?.error === "string"
+            data && typeof data.error === "string"
               ? data.error
-              : "Could not generate a summary.",
+              : "Summary service unavailable. Search results are unaffected.",
           );
           return;
         }
@@ -451,6 +450,7 @@ function HomeContent() {
               filterType={filterType}
               truncated={searchResult?.truncated}
               warning={searchResult?.warning}
+              loading={loading}
             />
           </div>
           {breakpoint === "desktop" && (
@@ -479,6 +479,7 @@ function HomeContent() {
             onSelect={handleSelect}
             filterOperator={filterOperator}
             filterType={filterType}
+            loading={loading}
           />
         </div>
       </main>

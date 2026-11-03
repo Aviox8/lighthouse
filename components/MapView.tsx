@@ -24,6 +24,7 @@ interface MapViewProps {
   onSelect: (id: string) => void;
   filterOperator: string | null;
   filterType: string | null;
+  loading?: boolean;
 }
 
 function escapeHtml(text: string): string {
@@ -238,6 +239,7 @@ export default function MapView({
   onSelect,
   filterOperator,
   filterType,
+  loading = false,
 }: MapViewProps) {
   const [showClusters, setShowClusters] = useState(true);
   const [modalAsset, setModalAsset] = useState<Asset | null>(null);
@@ -802,6 +804,12 @@ export default function MapView({
         {filteredResults.length === 0 && results.length > 0 && (
           <div className="map-overlay">
             <span>No results match current filters</span>
+          </div>
+        )}
+        {loading && (
+          <div className="map-searching" role="status" aria-live="polite">
+            <span className="map-searching-dot" />
+            Searching the map…
           </div>
         )}
       </div>

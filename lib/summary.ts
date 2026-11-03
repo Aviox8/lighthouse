@@ -383,8 +383,8 @@ async function resolveOllamaModel(
     }) as { name: string } | undefined;
 
     if (firstModel?.name) return firstModel.name;
-  } catch {
-    // Fall through to the default below.
+  } catch (error) {
+    console.error('[summary] ollama model discovery failed:', errMsg(error), '- falling back to gpt-oss:20b');
   }
 
   return 'gpt-oss:20b';
@@ -636,6 +636,25 @@ async function callExaAnswer(
   };
 }
 
+function errMsg(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+// After a provider fails, skip it briefly so repeated searches don't keep
+// waiting for the same broken/flaky API — falls back to the next provider
+// or the local summary immediately.
+const PROVIDER_COOLDOWN_MS = 60_000;
+const providerCooldowns = new Map<string, number>();
+
+function onCooldown(provider: string): boolean {
+  const failedAt = providerCooldowns.get(provider);
+  return failedAt !== undefined && Date.now() - failedAt < PROVIDER_COOLDOWN_MS;
+}
+
+function markProviderFailure(provider: string): void {
+  providerCooldowns.set(provider, Date.now());
+}
+
 export async function generateSummary(
   input: SummaryInput,
   options: GenerateSummaryOptions = {},
@@ -656,47 +675,65 @@ export async function generateSummary(
   const hasExa = Boolean(getExaKey());
 
   if (!hasOpenRouter && !hasOllama && !hasExa) {
+    console.info('[summary] no AI providers configured (need OPENROUTER_API_KEY, OLLAMA_API_KEY, or EXA_API_KEY); using local fallback');
     return createLocalSummary(input);
   }
 
   let degraded = false;
   let grounding: GroundingResult | null = null;
 
-  if (hasExa && (hasOpenRouter || hasOllama)) {
+  const llmsCoolingDown =
+    (!hasOpenRouter || onCooldown('openrouter')) &&
+    (!hasOllama || onCooldown('ollama'));
+
+  if (hasExa && (hasOpenRouter || hasOllama) && !llmsCoolingDown && !onCooldown('exa')) {
     try {
       grounding = await callExaSearch(facts);
-    } catch {
+      console.info('[summary] exa grounding ready:', grounding?.sources.length ?? 0, 'sources');
+    } catch (error) {
       degraded = true;
+      markProviderFailure('exa');
+      console.error('[summary] exa grounding failed:', errMsg(error));
     }
   }
 
-  if (hasOpenRouter && haveBudget()) {
+  if (hasOpenRouter && haveBudget() && !onCooldown('openrouter')) {
     try {
       const result = await callOpenRouter(facts, grounding);
+      console.info('[summary] openrouter succeeded');
       return { ...result.summary, degraded };
-    } catch {
+    } catch (error) {
       degraded = true;
+      markProviderFailure('openrouter');
+      console.error('[summary] openrouter failed:', errMsg(error));
     }
   }
 
-  if (hasOllama && haveBudget()) {
+  if (hasOllama && haveBudget() && !onCooldown('ollama')) {
     try {
       const result = await callOllama(facts, grounding);
+      console.info('[summary] ollama succeeded');
       return { ...result.summary, degraded };
-    } catch {
+    } catch (error) {
       degraded = true;
+      markProviderFailure('ollama');
+      console.error('[summary] ollama failed:', errMsg(error));
     }
   }
 
-  if (hasExa && haveBudget()) {
+  if (hasExa && haveBudget() && !onCooldown('exa')) {
     try {
       const result = await callExaAnswer(facts, grounding);
+      console.info('[summary] exa answer succeeded');
       return { ...result.summary, degraded };
-    } catch {
+    } catch (error) {
       degraded = true;
+      markProviderFailure('exa');
+      console.error('[summary] exa answer failed:', errMsg(error));
     }
   }
 
+  console.warn('[summary] all AI providers failed or unavailable; using local fallback summary');
   return {
     ...createLocalSummary(input, 'AI providers were unavailable, so this is a local summary.'),
     degraded: true,

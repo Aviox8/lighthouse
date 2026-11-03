@@ -21,6 +21,7 @@ interface ResultListProps {
   filterType: string | null;
   truncated?: boolean;
   warning?: string;
+  loading?: boolean;
 }
 
 export default function ResultList({
@@ -31,6 +32,7 @@ export default function ResultList({
   filterType,
   truncated = false,
   warning,
+  loading = false,
 }: ResultListProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLButtonElement>(null);
@@ -139,6 +141,25 @@ export default function ResultList({
   );
 
   if (results.length === 0) {
+    if (loading) {
+      return (
+        <div className="results-panel">
+          <div className="results-header">
+            <span className="results-count">Searching the map…</span>
+          </div>
+          <div className="results-list-content results-skeleton" aria-hidden="true">
+            {Array.from({ length: 8 }, (_, i) => (
+              <div key={i} className="results-skeleton-item">
+                <div className="skel skel-title" />
+                <div className="skel skel-sub" />
+                <div className="skel skel-tags" />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="results-empty">
         <svg

@@ -250,6 +250,7 @@ export async function POST(request: NextRequest) {
 
     const limit = checkRateLimit(getClientIp(request));
     if (!limit.allowed) {
+      console.warn(`[summary] rate limited (${limit.reason}); serving local fallback`);
       const notice =
         limit.reason === 'daily'
           ? 'Daily AI summary limit reached; showing a local summary.'
