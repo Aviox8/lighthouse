@@ -93,21 +93,26 @@ export default function SearchBar({
     
     // Debounce the API call - increased to 1500ms to respect Nominatim rate limit (1 req/sec)
     placeDebounceTimerRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      placeAbortControllerRef.current = controller;
       setLoadingPlaces(true);
-      placeAbortControllerRef.current = new AbortController();
-      
+
       try {
-        const suggestions = await getPlaceSuggestions(placeQuery, 5);
+        const suggestions = await getPlaceSuggestions(placeQuery, 5, controller.signal);
+        if (controller.signal.aborted) return;
         setPlaceSuggestions(suggestions);
         // Cache the results
         placeCacheRef.current.set(placeQuery, suggestions);
       } catch (error) {
+        if (controller.signal.aborted) return;
         if (error instanceof Error && error.name !== 'AbortError') {
           console.warn('Failed to fetch place suggestions:', error);
         }
         setPlaceSuggestions([]);
       } finally {
-        setLoadingPlaces(false);
+        if (placeAbortControllerRef.current === controller) {
+          setLoadingPlaces(false);
+        }
       }
     }, 1500); // 1500ms debounce for Nominatim rate limit
 

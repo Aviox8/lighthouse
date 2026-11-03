@@ -1,8 +1,17 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useEffect, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useMemo,
+  useRef,
+  useEffect,
+  useState,
+} from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Asset } from "@/lib/types";
+
+const PAGE_SIZE = 100;
 
 interface ResultListProps {
   results: Asset[];
@@ -10,6 +19,8 @@ interface ResultListProps {
   onSelect: (id: string) => void;
   filterOperator: string | null;
   filterType: string | null;
+  truncated?: boolean;
+  warning?: string;
 }
 
 export default function ResultList({
@@ -18,10 +29,27 @@ export default function ResultList({
   onSelect,
   filterOperator,
   filterType,
+  truncated = false,
+  warning,
 }: ResultListProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLButtonElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const paginationKey = [
+    results.length,
+    results[0]?.id || "",
+    results[results.length - 1]?.id || "",
+    filterOperator || "",
+    filterType || "",
+    searchQuery,
+  ].join(":");
+  const [pagination, setPagination] = useState({
+    key: paginationKey,
+    count: PAGE_SIZE,
+  });
+  const visibleCount =
+    pagination.key === paginationKey ? pagination.count : PAGE_SIZE;
 
   const filteredResults = useMemo(() => {
     let filtered = results;
@@ -34,8 +62,8 @@ export default function ResultList({
       filtered = filtered.filter((r) => r.type === filterType);
     }
 
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
+    if (deferredSearchQuery.trim()) {
+      const query = deferredSearchQuery.toLowerCase().trim();
       filtered = filtered.filter((asset) => {
         return (
           asset.name.toLowerCase().includes(query) ||
@@ -49,7 +77,12 @@ export default function ResultList({
     }
 
     return filtered;
-  }, [results, filterOperator, filterType, searchQuery]);
+  }, [results, filterOperator, filterType, deferredSearchQuery]);
+
+  const visibleResults = useMemo(
+    () => filteredResults.slice(0, visibleCount),
+    [filteredResults, visibleCount],
+  );
 
   useEffect(() => {
     if (selectedRef.current && scrollAreaRef.current) {
@@ -79,19 +112,19 @@ export default function ResultList({
         onSelect(id);
       }
 
-      if (e.key === "ArrowDown" && index < filteredResults.length - 1) {
+      if (e.key === "ArrowDown" && index < visibleResults.length - 1) {
         e.preventDefault();
-        const nextId = filteredResults[index + 1].id;
+        const nextId = visibleResults[index + 1].id;
         onSelect(nextId);
       }
 
       if (e.key === "ArrowUp" && index > 0) {
         e.preventDefault();
-        const prevId = filteredResults[index - 1].id;
+        const prevId = visibleResults[index - 1].id;
         onSelect(prevId);
       }
     },
-    [filteredResults, onSelect],
+    [visibleResults, onSelect],
   );
 
   if (results.length === 0) {
@@ -129,7 +162,34 @@ export default function ResultList({
             ? `${displayCount.toLocaleString()} results`
             : `${displayCount.toLocaleString()} of ${totalCount.toLocaleString()}`}
         </span>
+        {visibleResults.length < displayCount && (
+          <span className="results-visible-count">
+            showing {visibleResults.length.toLocaleString()}
+          </span>
+        )}
       </div>
+
+      {(truncated || warning) && (
+        <div className="results-warning" role="status">
+          <svg
+            className="results-warning-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.75}
+              d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+            />
+          </svg>
+          <span>
+            {warning ||
+              'The result set reached the 5,000-feature limit; refine the query for complete coverage.'}
+          </span>
+        </div>
+      )}
 
       <div className="results-search-container">
         <div className="results-search-wrapper">
@@ -180,7 +240,8 @@ export default function ResultList({
               <p className="results-search-empty-hint">Try a different search term</p>
             </div>
           ) : (
-            filteredResults.map((asset, index) => (
+            <>
+              {visibleResults.map((asset, index) => (
             <button
               key={asset.id}
               ref={selectedId === asset.id ? selectedRef : null}
@@ -220,7 +281,25 @@ export default function ResultList({
                 </div>
               )}
             </button>
-          ))
+              ))}
+              {visibleResults.length < filteredResults.length && (
+                <button
+                  type="button"
+                  className="results-load-more"
+                  onClick={() =>
+                    setPagination({
+                      key: paginationKey,
+                      count: Math.min(
+                        visibleCount + PAGE_SIZE,
+                        filteredResults.length,
+                      ),
+                    })
+                  }
+                >
+                  Load {Math.min(PAGE_SIZE, filteredResults.length - visibleResults.length).toLocaleString()} more
+                </button>
+              )}
+            </>
           )}
         </div>
       </ScrollArea>
