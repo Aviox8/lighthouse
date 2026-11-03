@@ -38,17 +38,13 @@ function useBreakpoint() {
   const [breakpoint, setBreakpoint] = useState<"mobile" | "desktop">("desktop");
 
   useEffect(() => {
-    const checkBreakpoint = () => {
-      if (window.innerWidth <= 1024) {
-        setBreakpoint("mobile");
-      } else {
-        setBreakpoint("desktop");
-      }
-    };
+    const mediaQuery = window.matchMedia("(max-width: 1024px)");
+    const updateBreakpoint = () =>
+      setBreakpoint(mediaQuery.matches ? "mobile" : "desktop");
 
-    checkBreakpoint();
-    window.addEventListener("resize", checkBreakpoint);
-    return () => window.removeEventListener("resize", checkBreakpoint);
+    updateBreakpoint();
+    mediaQuery.addEventListener("change", updateBreakpoint);
+    return () => mediaQuery.removeEventListener("change", updateBreakpoint);
   }, []);
 
   return breakpoint;
@@ -305,6 +301,22 @@ function HomeContent() {
     document.body.style.userSelect = "none";
   }, []);
 
+  const handleResizeKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const step = e.shiftKey ? 32 : 16;
+
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      const delta = e.key === "ArrowLeft" ? -step : step;
+      setResultsPanelWidth((width) => Math.max(250, Math.min(600, width + delta)));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setResultsPanelWidth(250);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setResultsPanelWidth(600);
+    }
+  }, []);
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing.current) return;
@@ -337,6 +349,20 @@ function HomeContent() {
       <header className="app-header">
         <div className="header-content">
           <div className="logo">
+            <svg
+              className="logo-mark"
+              viewBox="0 0 64 64"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <g stroke="currentColor" strokeWidth="5" strokeLinecap="round" opacity="0.9">
+                <line x1="32" y1="4" x2="32" y2="10" />
+                <line x1="13" y1="13" x2="17.5" y2="17.5" />
+                <line x1="51" y1="13" x2="46.5" y2="17.5" />
+              </g>
+              <path d="M26.5 22.5 L24.5 48 L39.5 48 L37.5 22.5 Z" fill="currentColor" opacity="0.9" />
+              <rect x="25.5" y="14.5" width="13" height="6.5" rx="1.5" fill="var(--accent)" stroke="none" />
+            </svg>
             <span className="logo-text">Lighthouse</span>
           </div>
 
@@ -428,14 +454,17 @@ function HomeContent() {
             />
           </div>
           {breakpoint === "desktop" && (
-            <div 
+            <div
               className="resize-handle"
               onMouseDown={handleResizeStart}
+              onKeyDown={handleResizeKeyDown}
               role="separator"
+              aria-orientation="vertical"
               aria-valuenow={resultsPanelWidth || 0}
               aria-valuemin={250}
               aria-valuemax={600}
-              aria-label="Resize results panel"
+              aria-label="Resize results panel (arrow keys)"
+              tabIndex={0}
             />
           )}
         </div>
@@ -454,10 +483,11 @@ function HomeContent() {
         </div>
       </main>
 
-      <nav className="mobile-nav">
+      <nav className="mobile-nav" aria-label="Panels">
         <button
           className={`mobile-nav-btn ${mobileTab === "map" ? "active" : ""}`}
           onClick={() => setMobileTab("map")}
+          aria-current={mobileTab === "map" ? "page" : undefined}
         >
           <svg
             viewBox="0 0 24 24"
@@ -472,6 +502,7 @@ function HomeContent() {
         <button
           className={`mobile-nav-btn ${mobileTab === "results" ? "active" : ""}`}
           onClick={() => setMobileTab("results")}
+          aria-current={mobileTab === "results" ? "page" : undefined}
         >
           <svg
             viewBox="0 0 24 24"
@@ -488,6 +519,7 @@ function HomeContent() {
         <button
           className={`mobile-nav-btn ${mobileTab === "filters" ? "active" : ""}`}
           onClick={() => setMobileTab("filters")}
+          aria-current={mobileTab === "filters" ? "page" : undefined}
         >
           <svg
             viewBox="0 0 24 24"

@@ -1,24 +1,41 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Lighthouse",
-  description: "Map real-world infrastructure from OpenStreetMap with AI-assisted aggregate summaries.",
+  title: {
+    default: "Lighthouse",
+    template: "%s — Lighthouse",
+  },
+  description:
+    "Map real-world infrastructure from OpenStreetMap with AI-assisted aggregate summaries.",
+  applicationName: "Lighthouse",
   robots: "index, follow",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Lighthouse"
-  }
+    title: "Lighthouse",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: "cover"
+  viewportFit: "cover",
+  themeColor: "#0a0e14",
 };
 
 export default function RootLayout({
@@ -27,7 +44,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        <link
+          rel="preconnect"
+          href="https://tile.openstreetmap.org"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preconnect"
+          href="https://server.arcgisonline.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="preconnect" href="https://nominatim.openstreetmap.org" />
+        <link
+          rel="dns-prefetch"
+          href="https://overpass-api.de"
+        />
+      </head>
       <body>
         {children}
         <Analytics />

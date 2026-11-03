@@ -36,20 +36,31 @@ export default function ResultList({
   const selectedRef = useRef<HTMLButtonElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
-  const paginationKey = [
-    results.length,
-    results[0]?.id || "",
-    results[results.length - 1]?.id || "",
-    filterOperator || "",
-    filterType || "",
-    searchQuery,
-  ].join(":");
-  const [pagination, setPagination] = useState({
-    key: paginationKey,
-    count: PAGE_SIZE,
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Reset pagination when the result set or filters change (adjusting
+  // state during render, per React docs — no effect needed).
+  const [resetSignature, setResetSignature] = useState({
+    results,
+    filterOperator,
+    filterType,
+    deferredSearchQuery,
   });
-  const visibleCount =
-    pagination.key === paginationKey ? pagination.count : PAGE_SIZE;
+
+  if (
+    resetSignature.results !== results ||
+    resetSignature.filterOperator !== filterOperator ||
+    resetSignature.filterType !== filterType ||
+    resetSignature.deferredSearchQuery !== deferredSearchQuery
+  ) {
+    setResetSignature({
+      results,
+      filterOperator,
+      filterType,
+      deferredSearchQuery,
+    });
+    setVisibleCount(PAGE_SIZE);
+  }
 
   const filteredResults = useMemo(() => {
     let filtered = results;
@@ -287,13 +298,9 @@ export default function ResultList({
                   type="button"
                   className="results-load-more"
                   onClick={() =>
-                    setPagination({
-                      key: paginationKey,
-                      count: Math.min(
-                        visibleCount + PAGE_SIZE,
-                        filteredResults.length,
-                      ),
-                    })
+                    setVisibleCount((count) =>
+                      Math.min(count + PAGE_SIZE, filteredResults.length),
+                    )
                   }
                 >
                   Load {Math.min(PAGE_SIZE, filteredResults.length - visibleResults.length).toLocaleString()} more

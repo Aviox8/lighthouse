@@ -231,14 +231,6 @@ const selectedIcon = L.divIcon({
   popupAnchor: [0, -8],
 });
 
-const blueDotIcon = L.divIcon({
-  className: "marker-bluedot",
-  html: '<div style="background:#2196f3;border-radius:50%;width:12px;height:12px;border:2px solid #111;"></div>',
-  iconSize: [16, 16],
-  iconAnchor: [8, 8],
-  popupAnchor: [0, -8],
-});
-
 export default function MapView({
   results,
   bounds,
@@ -525,7 +517,7 @@ export default function MapView({
         removeOutsideVisibleBounds: true,
         spiderLegPolylineOptions: {
           weight: 1.5,
-          color: "#30363d",
+          color: "#232d40",
           opacity: 0.6,
         },
         iconCreateFunction: (cluster) => {
@@ -598,7 +590,7 @@ export default function MapView({
       for (const asset of validResults) {
         try {
           const marker = L.marker([asset.lat, asset.lon], {
-            icon: blueDotIcon,
+            icon: defaultIcon,
             keyboard: true,
           });
           marker.bindPopup(() => createPopupContent(asset), {
@@ -691,7 +683,7 @@ export default function MapView({
         if (id === selectedId) {
           marker.setIcon(selectedIcon);
         } else {
-          marker.setIcon(showClusters ? defaultIcon : blueDotIcon);
+          marker.setIcon(defaultIcon);
         }
       } catch {}
     });
@@ -794,41 +786,16 @@ export default function MapView({
   return (
     <>
       <div className="map-container">
-        <div
-          style={{
-            position: "absolute",
-            zIndex: 401,
-            left: 12,
-            bottom: 12,
-            minWidth: 0,
-            background: "#161b22",
-            borderRadius: 6,
-            boxShadow: "0 2px 8px 0 rgba(0,0,0,0.3)",
-            border: "1px solid #30363d",
-            padding: "6px 10px",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontSize: 13,
-            fontWeight: 500,
-            lineHeight: 1.2,
-          }}
-        >
+        <div className="cluster-toggle">
           <input
             id="cluster-toggle"
             type="checkbox"
             checked={showClusters}
             onChange={e => setShowClusters(e.target.checked)}
-            style={{
-              accentColor: '#58a6ff',
-              width: 16,
-              height: 16,
-              cursor: 'pointer',
-              verticalAlign: 'middle',
-            }}
+            style={{ accentColor: '#f0b429' }}
           />
-          <label htmlFor="cluster-toggle" style={{ cursor: 'pointer', userSelect: 'none', color: '#e6edf3', letterSpacing: '-0.01em', padding: 0, margin: 0 }}>
-            <span style={{ verticalAlign: 'middle' }}>Cluster Markers</span>
+          <label htmlFor="cluster-toggle">
+            Cluster Markers
           </label>
         </div>
         <div ref={containerRef} className="map-inner" />
