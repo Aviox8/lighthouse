@@ -5,6 +5,14 @@ const USER_AGENT = 'Lighthouse/1.0 (+https://github.com/Aviox8/lighthouse)';
 const NOMINATIM_API = '/api/nominatim'; // Client-side proxy
 const TIMEOUT_MS = 7000;
 
+// Optional keyed geocoding instance (overpass.ch, Nominatim compatible).
+const OVERPASS_CH_BASE = 'https://api.overpass.ch/v1';
+
+function getKeyedNominatimBase(): string | null {
+  const key = process.env.OVERPASS_CH_KEY?.trim();
+  return key ? `${OVERPASS_CH_BASE}/${encodeURIComponent(key)}/nominatim` : null;
+}
+
 // Detect if running on server or client
 const isServer = typeof window === 'undefined';
 
@@ -53,6 +61,7 @@ interface NominatimResponse {
   };
   boundingbox: [string, string, string, string];
   importance: number;
+  place_rank?: number;
   type: string;
   class: string;
 }
@@ -86,6 +95,76 @@ async function fetchWithTimeout(
   }
 }
 
+async function readNominatimJson(response: Response): Promise<NominatimResponse[]> {
+  const data = await response.json();
+  return Array.isArray(data) ? (data as NominatimResponse[]) : [];
+}
+
+/**
+ * Search Nominatim. On the server the keyed overpass.ch instance is preferred
+ * (it allows 300 requests/min, so no 1 req/s throttle), with the public
+ * Nominatim kept as a fallback. In the browser this goes through the proxy.
+ */
+async function nominatimSearch(
+  params: URLSearchParams,
+  signal?: AbortSignal,
+): Promise<NominatimResponse[]> {
+  if (!isServer) {
+    const proxyParams = new URLSearchParams(params);
+    proxyParams.set('endpoint', 'search');
+    const response = await fetchWithTimeout(
+      `${NOMINATIM_API}?${proxyParams}`,
+      { headers: { 'Accept': 'application/json' } },
+      TIMEOUT_MS,
+      signal,
+    );
+    if (!response.ok) {
+      throw new Error(`Nominatim request failed: ${response.status}`);
+    }
+    return readNominatimJson(response);
+  }
+
+  const keyedBase = getKeyedNominatimBase();
+  if (keyedBase) {
+    try {
+      const response = await fetchWithTimeout(
+        `${keyedBase}/search?${params}`,
+        { headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' } },
+        TIMEOUT_MS,
+        signal,
+      );
+      if (response.ok) {
+        const data = await readNominatimJson(response);
+        // The search route needs bounding boxes and OSM ids.
+        if (data.length > 0 && data.every((item) => item.boundingbox && item.lat && item.lon)) {
+          return data;
+        }
+        console.warn('overpass.ch geocoding returned no usable results; falling back to public Nominatim');
+      } else {
+        console.warn(`overpass.ch geocoding failed (${response.status}); falling back to public Nominatim`);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') throw error;
+      console.warn('overpass.ch geocoding failed; falling back to public Nominatim');
+    }
+  }
+
+  // Public Nominatim allows 1 request per second; serialize to respect it.
+  await waitForRateLimit();
+  const response = await fetchWithTimeout(
+    `${NOMINATIM_BASE}/search?${params}`,
+    { headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' } },
+    TIMEOUT_MS,
+    signal,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Nominatim request failed: ${response.status}`);
+  }
+
+  return readNominatimJson(response);
+}
+
 export async function geocode(query: string, countryCode?: string): Promise<GeoResult[]> {
   const params = new URLSearchParams({
     q: query,
@@ -98,33 +177,7 @@ export async function geocode(query: string, countryCode?: string): Promise<GeoR
     params.set('countrycodes', countryCode);
   }
 
-  let url: string;
-  let headers: Record<string, string>;
-
-  if (isServer) {
-    // Server-side: call Nominatim directly with proper User-Agent and rate limiting
-    await waitForRateLimit();
-    url = `${NOMINATIM_BASE}/search?${params}`;
-    headers = {
-      'User-Agent': USER_AGENT,
-      'Accept': 'application/json'
-    };
-  } else {
-    // Client-side: use proxy to avoid CORS and User-Agent issues
-    params.set('endpoint', 'search');
-    url = `${NOMINATIM_API}?${params}`;
-    headers = {
-      'Accept': 'application/json'
-    };
-  }
-
-  const response = await fetchWithTimeout(url, { headers }, TIMEOUT_MS);
-
-  if (!response.ok) {
-    throw new Error(`Nominatim request failed: ${response.status}`);
-  }
-
-  const data: NominatimResponse[] = await response.json();
+  const data = await nominatimSearch(params);
 
   return data.map((item) => ({
     displayName: item.display_name,
@@ -138,6 +191,7 @@ export async function geocode(query: string, countryCode?: string): Promise<GeoR
     ] as [number, number, number, number],
     type: item.type,
     importance: item.importance,
+    placeRank: item.place_rank,
     osmType: item.osm_type,
     osmId: item.osm_id,
     addressComponents: {
@@ -164,34 +218,8 @@ export async function getPlaceSuggestions(
     limit: limit.toString()
   });
 
-  let url: string;
-  let headers: Record<string, string>;
-
-  if (isServer) {
-    // Server-side: call Nominatim directly with proper User-Agent and rate limiting
-    await waitForRateLimit();
-    url = `${NOMINATIM_BASE}/search?${params}`;
-    headers = {
-      'User-Agent': USER_AGENT,
-      'Accept': 'application/json'
-    };
-  } else {
-    // Client-side: use proxy to avoid CORS and User-Agent issues
-    params.set('endpoint', 'search');
-    url = `${NOMINATIM_API}?${params}`;
-    headers = {
-      'Accept': 'application/json'
-    };
-  }
-
   try {
-    const response = await fetchWithTimeout(url, { headers }, TIMEOUT_MS, signal);
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const data: NominatimResponse[] = await response.json();
+    const data = await nominatimSearch(params, signal);
 
     return data.map((item) => {
       // Extract the most meaningful place name components
@@ -244,6 +272,15 @@ export async function getPlaceSuggestions(
   }
 }
 
+// Place types that make a usable search scope. Kept broad so cities, regions,
+// islands and country-level results all qualify.
+const AREA_TYPES = new Set([
+  'country', 'state', 'state_district', 'region', 'province', 'county',
+  'district', 'municipality', 'city', 'town', 'village', 'hamlet',
+  'borough', 'suburb', 'locality', 'place', 'island', 'islet',
+  'archipelago', 'administrative',
+]);
+
 export async function resolveLocation(
   query: string,
   preferredCountry?: string
@@ -254,17 +291,17 @@ export async function resolveLocation(
     return null;
   }
 
-  const adminTypes = ['administrative', 'state', 'city', 'town', 'village', 'county', 'district'];
-  
-  const adminResult = results.find(r => 
-    adminTypes.includes(r.type) || r.importance > 0.5
-  );
+  // Rank the way Nominatim does: lower place_rank (country before town) wins,
+  // then higher importance, then the order the geocoder returned. Without this,
+  // "malta" resolved to the village of Malta, New York instead of the country.
+  const ranked = [...results].sort((a, b) => {
+    const rankA = a.placeRank ?? 30;
+    const rankB = b.placeRank ?? 30;
+    if (rankA !== rankB) return rankA - rankB;
+    return b.importance - a.importance;
+  });
 
-  if (adminResult) {
-    return adminResult;
-  }
-
-  return results.sort((a, b) => b.importance - a.importance)[0];
+  return ranked.find((result) => AREA_TYPES.has(result.type)) ?? ranked[0];
 }
 
 export function calculateBoundingBox(

@@ -1,11 +1,39 @@
 import { Asset, ASSET_TYPE_MAP } from './types';
 
-const OVERPASS_APIS = [
+// Public mirrors, used on their own or as a fallback behind a keyed endpoint.
+// They are often overloaded (HTTP 502 / timeouts), so they are not the first choice.
+const PUBLIC_OVERPASS_APIS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
   'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
 ];
+
+// Optional dedicated Overpass instance (overpass.ch). Set OVERPASS_CH_KEY on the
+// server and it is tried first; the key stays server-side and is never logged.
+const OVERPASS_CH_BASE = 'https://api.overpass.ch/v1';
+
+interface OverpassEndpoint {
+  url: string;
+  label: string;
+}
+
+function getOverpassEndpoints(): OverpassEndpoint[] {
+  const endpoints: OverpassEndpoint[] = PUBLIC_OVERPASS_APIS.map((url) => ({
+    url,
+    label: new URL(url).hostname,
+  }));
+
+  const key = process.env.OVERPASS_CH_KEY?.trim();
+  if (key) {
+    endpoints.unshift({
+      url: `${OVERPASS_CH_BASE}/${encodeURIComponent(key)}/interpreter`,
+      label: 'overpass.ch',
+    });
+  }
+
+  return endpoints;
+}
 
 // Keep well under Vercel's 30s serverless cap, including Nominatim and JSON overhead.
 const TIMEOUT_MS = 15000;
@@ -176,9 +204,10 @@ function getResultWarning(remark: string): string {
 export async function executeQuery(query: string): Promise<OverpassQueryResult> {
   let lastError: Error | null = null;
   const startedAt = Date.now();
+  const endpoints = getOverpassEndpoints();
 
-  for (let i = 0; i < OVERPASS_APIS.length; i++) {
-    const apiEndpoint = OVERPASS_APIS[i];
+  for (let i = 0; i < endpoints.length; i++) {
+    const { url: apiEndpoint, label } = endpoints[i];
     const remainingMs = OVERALL_BUDGET_MS - (Date.now() - startedAt);
     if (remainingMs <= 1500) {
       break;
@@ -197,15 +226,18 @@ export async function executeQuery(query: string): Promise<OverpassQueryResult> 
 
       if (!response.ok) {
         if (response.status === 429) {
-          lastError = new Error(`Rate limited by ${apiEndpoint}`);
-          if (i < OVERPASS_APIS.length - 1) {
-            console.warn(`Rate limited by API ${i + 1}, trying next endpoint...`);
+          lastError = new Error(`Rate limited by ${label}`);
+          if (i < endpoints.length - 1) {
+            console.warn(`Rate limited by ${label}, trying next endpoint...`);
             continue;
           }
         } else {
           lastError = new Error(`API request failed with status ${response.status}`);
-          if (i < OVERPASS_APIS.length - 1) {
-            console.warn(`API ${i + 1} failed (${response.status}), trying next endpoint...`);
+          if (response.status === 401 || response.status === 403) {
+            console.warn(`${label} rejected the API key (${response.status}); check OVERPASS_CH_KEY`);
+          }
+          if (i < endpoints.length - 1) {
+            console.warn(`${label} failed (${response.status}), trying next endpoint...`);
             continue;
           }
         }
@@ -223,7 +255,7 @@ export async function executeQuery(query: string): Promise<OverpassQueryResult> 
       }
       
       if (i > 0) {
-        console.log(`Successfully fetched data from backup API endpoint ${i + 1}`);
+        console.log(`Successfully fetched data from fallback endpoint ${label}`);
       }
 
       const assets = data.elements
@@ -256,8 +288,8 @@ export async function executeQuery(query: string): Promise<OverpassQueryResult> 
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       
-      if (i < OVERPASS_APIS.length - 1) {
-        console.warn(`API ${i + 1} failed: ${lastError.message}, trying next endpoint...`);
+      if (i < endpoints.length - 1) {
+        console.warn(`${label} failed: ${lastError.message}, trying next endpoint...`);
         continue;
       }
       

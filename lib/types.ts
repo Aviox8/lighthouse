@@ -15,6 +15,8 @@ export interface GeoResult {
   boundingBox: [number, number, number, number];
   type: string;
   importance: number;
+  /** Nominatim place rank: lower means a larger/more significant place. */
+  placeRank?: number;
   osmType?: string;
   osmId?: number;
   addressComponents: {

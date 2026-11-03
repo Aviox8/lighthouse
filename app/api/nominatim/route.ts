@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
+const OVERPASS_CH_BASE = 'https://api.overpass.ch/v1';
 const USER_AGENT = 'Lighthouse/1.0 (+https://github.com/Aviox8/lighthouse)';
+
+/** Keyed overpass.ch geocoding, used first when OVERPASS_CH_KEY is set. */
+function getKeyedNominatimBase(): string | null {
+  const key = process.env.OVERPASS_CH_KEY?.trim();
+  return key ? `${OVERPASS_CH_BASE}/${encodeURIComponent(key)}/nominatim` : null;
+}
 const ALLOWED_ENDPOINTS = new Set(['search']);
 const TIMEOUT_MS = 10000;
 
@@ -73,15 +80,46 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const headers = {
+      'User-Agent': USER_AGENT,
+      'Accept': 'application/json',
+    };
+
+    const keyedBase = getKeyedNominatimBase();
+    if (keyedBase) {
+      try {
+        // No 1 req/s throttle here: the keyed plan allows 300 requests/min.
+        const keyedResponse = await fetch(`${keyedBase}/${endpoint}?${safeParams.toString()}`, {
+          headers,
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+        });
+
+        if (keyedResponse.ok) {
+          const data = await keyedResponse.json();
+          return NextResponse.json(data, {
+            headers: {
+              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+            },
+          });
+        }
+
+        console.warn(`overpass.ch geocoding failed (${keyedResponse.status}); falling back to public Nominatim`);
+      } catch (error) {
+        const timedOut = error instanceof Error && (
+          error.name === 'AbortError' ||
+          error.name === 'TimeoutError' ||
+          error.message.includes('timed out')
+        );
+        console.warn(`overpass.ch geocoding failed (${timedOut ? 'timeout' : 'network error'}); falling back to public Nominatim`);
+      }
+    }
+
     await waitForRateLimit();
 
     const nominatimUrl = `${NOMINATIM_BASE}/${endpoint}?${safeParams.toString()}`;
 
     const response = await fetch(nominatimUrl, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        'Accept': 'application/json',
-      },
+      headers,
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
 
