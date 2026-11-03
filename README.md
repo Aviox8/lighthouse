@@ -2,7 +2,6 @@
 
 Geospatial infrastructure intelligence platform for discovering and analyzing physical-world assets using OpenStreetMap data, with optional AI-assisted aggregate summaries.
 
-Lighthouse is based on [Sightline](https://github.com/ni5arga/sightline) by [ni5arga](https://github.com/ni5arga), used under the MIT License.
 
 ## Overview
 
@@ -600,4 +599,4 @@ The presence or absence of infrastructure in OSM should not be taken as authorit
 
 ## License
 
-MIT. Lighthouse is based on [Sightline](https://github.com/ni5arga/sightline) by [ni5arga](https://github.com/ni5arga); the original copyright notice is retained in [LICENSE](LICENSE).
+The original copyright notice is retained in [LICENSE](LICENSE).
