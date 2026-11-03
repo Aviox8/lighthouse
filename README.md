@@ -97,6 +97,8 @@ Geographic resolution uses the [Nominatim](https://nominatim.openstreetmap.org/)
 
 Infrastructure queries execute against the [Overpass API](https://overpass-api.de/), which provides read-only access to OSM data.
 
+With `OVERPASS_CH_KEY` set, queries run against [overpass.ch](https://overpass.ch/) first (a keyed instance of the same API) and fall back to the public mirrors. Geocoding then prefers its Nominatim-compatible endpoint too, which allows 300 requests/min instead of the public 1 request/second. The key is server-side only: never expose it as `NEXT_PUBLIC_*`, since it travels in the request path.
+
 ### Exa (Optional)
 
 When configured, [Exa](https://exa.ai/) can provide public reference context for AI summaries and act as the final AI fallback. Exa is never used as the source of infrastructure counts or locations.
@@ -568,6 +570,7 @@ See `.env.example` for optional OpenRouter, Ollama, and Exa configuration. Provi
 | `OLLAMA_API_KEY` | Ollama Cloud key |
 | `OLLAMA_BASE_URL` | Local or self-hosted Ollama base URL |
 | `OLLAMA_MODEL` | Ollama model; auto-discovered if omitted |
+| `OVERPASS_CH_KEY` | Optional overpass.ch key: preferred Overpass and geocoding instance |
 | `EXA_API_KEY` | Optional Exa grounding and final answer fallback |
 | `EXA_SEARCH_TYPE` | Exa search type (default `auto`) |
 | `EXA_NUM_RESULTS` | Grounding results per summary (default 4) |
