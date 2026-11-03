@@ -7,7 +7,13 @@ import SearchBar from "@/components/SearchBar";
 import ShareButton from "@/components/ShareButton";
 import Filters from "@/components/Filters";
 import ResultList from "@/components/ResultList";
-import type { SearchResult, SearchError } from "@/lib/types";
+import SummaryCard from "@/components/SummaryCard";
+import type {
+  SearchResult,
+  SearchError,
+  SearchStats,
+  Summary,
+} from "@/lib/types";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
@@ -57,6 +63,22 @@ function sanitizeQuery(query: string): string | null {
   return sanitized.length > 0 ? sanitized : null;
 }
 
+/** Keep summary requests small; the API only uses leading aggregate counts. */
+function compactSummaryStats(stats: SearchStats): SearchStats {
+  const topEntries = (record: Record<string, number>, limit: number) =>
+    Object.fromEntries(
+      Object.entries(record)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, limit),
+    );
+
+  return {
+    total: stats.total,
+    types: topEntries(stats.types, 12),
+    operators: topEntries(stats.operators, 12),
+  };
+}
+
 export default function Home() {
   return (
     <Suspense fallback={<div className="app-loading">Loading...</div>}>
@@ -76,6 +98,12 @@ function HomeContent() {
   const [currentQuery, setCurrentQuery] = useState<string>("");
   const [initialQuery, setInitialQuery] = useState<string>("");
 
+  // Summary state
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryRetryKey, setSummaryRetryKey] = useState(0);
+
   // Selection and filters
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterOperator, setFilterOperator] = useState<string | null>(null);
@@ -90,6 +118,8 @@ function HomeContent() {
   const isInitialMount = useRef(true);
   const lastUrlQuery = useRef<string | null>(null);
   const isResizing = useRef(false);
+  const searchAbortControllerRef = useRef<AbortController | null>(null);
+  const summaryAbortControllerRef = useRef<AbortController | null>(null);
 
   // Update default tab based on breakpoint
   useEffect(() => {
@@ -101,14 +131,24 @@ function HomeContent() {
   // Core search function
   const handleSearch = useCallback(
     async (query: string, updateUrl = true) => {
+      searchAbortControllerRef.current?.abort();
+      summaryAbortControllerRef.current?.abort();
+      const controller = new AbortController();
+      searchAbortControllerRef.current = controller;
+
       setLoading(true);
       setError(null);
       setSelectedId(null);
       setFilterOperator(null);
       setFilterType(null);
       setCurrentQuery(query);
+      setSearchResult(null);
+      setSummary(null);
+      setSummaryError(null);
+      setSummaryLoading(false);
 
       if (updateUrl) {
+        lastUrlQuery.current = query;
         const params = new URLSearchParams();
         params.set("q", query);
         router.push(`?${params.toString()}`, { scroll: false });
@@ -119,9 +159,11 @@ function HomeContent() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query }),
+          signal: controller.signal,
         });
 
         const data = await response.json();
+        if (controller.signal.aborted) return;
 
         if (!response.ok) {
           setError((data as SearchError).error);
@@ -130,11 +172,14 @@ function HomeContent() {
           setSearchResult(data as SearchResult);
           setError(null);
         }
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") return;
         setError("Network error. Please check your connection.");
         setSearchResult(null);
       } finally {
-        setLoading(false);
+        if (searchAbortControllerRef.current === controller) {
+          setLoading(false);
+        }
       }
     },
     [router],
@@ -166,6 +211,76 @@ function HomeContent() {
     setInitialQuery(randomQuery);
     handleSearch(randomQuery, true);
   }, [searchParams, handleSearch]);
+
+  // Generate an aggregate-only summary whenever a search succeeds.
+  useEffect(() => {
+    if (!searchResult || !currentQuery) {
+      setSummary(null);
+      setSummaryLoading(false);
+      setSummaryError(null);
+      return;
+    }
+
+    summaryAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    summaryAbortControllerRef.current = controller;
+
+    setSummary(null);
+    setSummaryError(null);
+    setSummaryLoading(true);
+
+    const requestSummary = async () => {
+      try {
+        const response = await fetch("/api/summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: currentQuery,
+            stats: compactSummaryStats(searchResult.stats),
+            truncated: searchResult.truncated,
+            warning: searchResult.warning,
+          }),
+          signal: controller.signal,
+        });
+
+        const data = await response.json();
+        if (controller.signal.aborted) return;
+
+        if (!response.ok) {
+          setSummaryError(
+            typeof data?.error === "string"
+              ? data.error
+              : "Could not generate a summary.",
+          );
+          return;
+        }
+
+        setSummary(data as Summary);
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") return;
+        setSummaryError("Could not generate a summary.");
+      } finally {
+        if (!controller.signal.aborted) {
+          setSummaryLoading(false);
+        }
+      }
+    };
+
+    requestSummary();
+
+    return () => controller.abort();
+  }, [searchResult, currentQuery, summaryRetryKey]);
+
+  const handleRetrySummary = useCallback(() => {
+    setSummaryRetryKey((key) => key + 1);
+  }, []);
+
+  const handleSummaryFollowup = useCallback(
+    (query: string) => {
+      handleSearch(query);
+    },
+    [handleSearch],
+  );
 
   // Selection handler
   const handleSelect = useCallback((id: string) => {
@@ -222,7 +337,7 @@ function HomeContent() {
       <header className="app-header">
         <div className="header-content">
           <div className="logo">
-            <span className="logo-text">Sightline</span>
+            <span className="logo-text">Lighthouse</span>
           </div>
 
           <SearchBar
@@ -234,7 +349,7 @@ function HomeContent() {
           <div className="header-meta">
             <ShareButton query={currentQuery} disabled={loading} />
             <a
-              href="https://github.com/ni5arga/sightline"
+              href="https://github.com/Aviox8/lighthouse"
               target="_blank"
               rel="noopener noreferrer"
               className="header-link"
@@ -294,13 +409,24 @@ function HomeContent() {
         <div
           className={`panel-results ${mobileTab === "results" ? "mobile-active" : ""}`}
         >
-          <ResultList
-            results={searchResult?.results || []}
-            selectedId={selectedId}
-            onSelect={handleSelect}
-            filterOperator={filterOperator}
-            filterType={filterType}
-          />
+          <div className="results-host">
+            <SummaryCard
+              summary={summary}
+              loading={summaryLoading}
+              error={summaryError}
+              onRetry={handleRetrySummary}
+              onFollowup={handleSummaryFollowup}
+            />
+            <ResultList
+              results={searchResult?.results || []}
+              selectedId={selectedId}
+              onSelect={handleSelect}
+              filterOperator={filterOperator}
+              filterType={filterType}
+              truncated={searchResult?.truncated}
+              warning={searchResult?.warning}
+            />
+          </div>
           {breakpoint === "desktop" && (
             <div 
               className="resize-handle"
