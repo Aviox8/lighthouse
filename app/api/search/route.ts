@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parseQuery, validateQuery } from '@/lib/parser';
+import { buildLocationQuery, parseQuery, validateQuery } from '@/lib/parser';
 import { resolveLocation, calculateBoundingBox, osmIdToAreaId } from '@/lib/geo';
 import { buildOverpassQuery, buildMultiTypeQuery, executeQuery, calculateStats } from '@/lib/overpass';
 import { getCachedSearchResult, cacheSearchResult, getCachedGeoResult, cacheGeoResult } from '@/lib/cache';
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SearchRes
       return NextResponse.json(cached);
     }
 
-    const locationQuery = parsed.near || parsed.region || parsed.country;
+    const locationQuery = buildLocationQuery(parsed);
     if (!locationQuery) {
       return NextResponse.json(
         { error: 'Geographic scope is required', code: 'MISSING_LOCATION' },
@@ -103,14 +103,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<SearchRes
       );
     }
 
-    const assets = await executeQuery(overpassQuery);
-    const stats = calculateStats(assets);
+    const queryResult = await executeQuery(overpassQuery);
+    const stats = calculateStats(queryResult.assets);
 
     const result: SearchResult = {
-      results: assets,
+      results: queryResult.assets,
       stats,
       bounds: bbox,
-      query: parsed
+      query: parsed,
+      truncated: queryResult.truncated,
+      warning: queryResult.warning,
     };
 
     cacheSearchResult(cacheKey, result);

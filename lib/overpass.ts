@@ -7,7 +7,8 @@ const OVERPASS_APIS = [
 ];
 
 const TIMEOUT_MS = 30000;
-const USER_AGENT = 'Sightline/1.0 (+https://github.com/ni5arga/sightline)';
+const USER_AGENT = 'Lighthouse/1.0 (+https://github.com/Aviox8/lighthouse)';
+export const MAX_RESULTS = 5000;
 
 interface OverpassElement {
   type: 'node' | 'way' | 'relation';
@@ -20,6 +21,17 @@ interface OverpassElement {
 
 interface OverpassResponse {
   elements: OverpassElement[];
+  remark?: string;
+}
+
+export interface OverpassQueryResult {
+  assets: Asset[];
+  truncated: boolean;
+  warning?: string;
+}
+
+function escapeOverpassString(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 function buildTagFilter(osmTags: Record<string, string | string[]>): string {
@@ -27,10 +39,12 @@ function buildTagFilter(osmTags: Record<string, string | string[]>): string {
   
   for (const [key, value] of Object.entries(osmTags)) {
     if (Array.isArray(value)) {
-      const regex = value.join('|');
-      filters.push(`["${key}"~"${regex}",i]`);
+      const regex = value.map(escapeOverpassString).join('|');
+      filters.push(`["${escapeOverpassString(key)}"~"${regex}",i]`);
     } else {
-      filters.push(`["${key}"="${value}"]`);
+      filters.push(
+        `["${escapeOverpassString(key)}"="${escapeOverpassString(value)}"]`,
+      );
     }
   }
   
@@ -52,7 +66,7 @@ export function buildOverpassQuery(
   
   let operatorFilter = '';
   if (operator) {
-    operatorFilter = `["operator"~"${operator}",i]`;
+    operatorFilter = `["operator"~"${escapeOverpassString(operator)}",i]`;
   }
 
   let locationFilter = '';
@@ -77,7 +91,7 @@ export function buildOverpassQuery(
 (
 ${unionParts.join('\n')}
 );
-out center;
+out center ${MAX_RESULTS};
 `.trim();
 
   return query;
@@ -100,11 +114,11 @@ export function buildMultiTypeQuery(
   const query = `
 [out:json][timeout:25][maxsize:50000000];
 (
-  node["operator"~"${operator}",i]${locationFilter};
-  way["operator"~"${operator}",i]${locationFilter};
-  relation["operator"~"${operator}",i]${locationFilter};
+  node["operator"~"${escapeOverpassString(operator)}",i]${locationFilter};
+  way["operator"~"${escapeOverpassString(operator)}",i]${locationFilter};
+  relation["operator"~"${escapeOverpassString(operator)}",i]${locationFilter};
 );
-out center;
+out center ${MAX_RESULTS};
 `.trim();
 
   return query;
@@ -127,7 +141,25 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeout: numb
   }
 }
 
-export async function executeQuery(query: string): Promise<Asset[]> {
+function getResultWarning(remark: string): string {
+  const normalized = remark.toLowerCase();
+
+  if (normalized.includes('timed out') || normalized.includes('timeout')) {
+    return 'The Overpass query timed out; results may be incomplete.';
+  }
+
+  if (
+    normalized.includes('out of memory') ||
+    normalized.includes('maxsize') ||
+    normalized.includes('runtime error')
+  ) {
+    return 'The Overpass query exceeded server limits; results may be incomplete.';
+  }
+
+  return 'Overpass returned a partial-response warning; results may be incomplete.';
+}
+
+export async function executeQuery(query: string): Promise<OverpassQueryResult> {
   let lastError: Error | null = null;
 
   for (let i = 0; i < OVERPASS_APIS.length; i++) {
@@ -161,12 +193,20 @@ export async function executeQuery(query: string): Promise<Asset[]> {
       }
 
       const data: OverpassResponse = await response.json();
+
+      if (!Array.isArray(data.elements)) {
+        throw new Error('Overpass returned an invalid response');
+      }
+
+      if (data.elements.length === 0 && data.remark) {
+        throw new Error(`Overpass returned no elements: ${data.remark}`);
+      }
       
       if (i > 0) {
         console.log(`Successfully fetched data from backup API endpoint ${i + 1}`);
       }
-      
-      return data.elements
+
+      const assets = data.elements
         .filter(el => {
           const lat = el.lat ?? el.center?.lat;
           const lon = el.lon ?? el.center?.lon;
@@ -187,6 +227,12 @@ export async function executeQuery(query: string): Promise<Asset[]> {
             tags
           };
         });
+
+      return {
+        assets,
+        truncated: assets.length >= MAX_RESULTS || Boolean(data.remark),
+        warning: data.remark ? getResultWarning(data.remark) : undefined,
+      };
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       

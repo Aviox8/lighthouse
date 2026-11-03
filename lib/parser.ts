@@ -8,7 +8,6 @@ const TYPE_PATTERNS = [
   { pattern: /\bradio\s*(?:tower|mast)s?\b/i, type: 'radio_tower' },
   { pattern: /\bbroadcast(?:ing)?\s*(?:tower|mast)s?\b/i, type: 'broadcast_tower' },
   { pattern: /\b(?:telecom|communication)\s*(?:tower|mast)s?\b/i, type: 'telecom' },
-  { pattern: /\btowers?\b/i, type: 'telecom' },
   { pattern: /\bdata\s*cent(?:er|re)s?\b/i, type: 'data_center' },
   { pattern: /\bpower\s*(?:plant|station)s?\b/i, type: 'power_plant' },
   { pattern: /\bsubstations?\b/i, type: 'substation' },
@@ -65,12 +64,13 @@ const TYPE_PATTERNS = [
   { pattern: /\bsilos?\b/i, type: 'silo' },
   { pattern: /\bchimne(?:y|ys)\b/i, type: 'chimney' },
   { pattern: /\bcooling\s*towers?\b/i, type: 'cooling_tower' },
+  { pattern: /\bclock\s*towers?\b/i, type: 'clock_tower' },
+  { pattern: /\bbell\s*towers?\b/i, type: 'bell_tower' },
   { pattern: /\blighthouses?\b/i, type: 'lighthouse' },
   { pattern: /\bradars?\b/i, type: 'radar' },
   { pattern: /\b(?:surveillance|security|cctv)\s*cameras?\b/i, type: 'surveillance_camera' },
   { pattern: /\bcctv\b/i, type: 'surveillance_camera' },
   { pattern: /\bantennas?\b/i, type: 'antenna' },
-  { pattern: /\bmasts?\b/i, type: 'mast' },
   { pattern: /\bbridges?\b/i, type: 'bridge' },
   { pattern: /\btunnels?\b/i, type: 'tunnel' },
   { pattern: /\bferr(?:y|ies)\s*terminals?\b/i, type: 'ferry_terminal' },
@@ -120,7 +120,8 @@ const TYPE_PATTERNS = [
   { pattern: /\brunways?\b/i, type: 'runway' },
   { pattern: /\b(?:airport|airline)?\s*terminals?\b/i, type: 'terminal' },
   { pattern: /\bhangars?\b/i, type: 'hangar' },
-  { pattern: /\b(?:atc|air\s*traffic\s*control)\s*(?:tower)?s?\b/i, type: 'atc_tower' },
+  { pattern: /\b(?:atc|control)\s*towers?\b/i, type: 'atc_tower' },
+  { pattern: /\bair\s*traffic\s*control\s*towers?\b/i, type: 'atc_tower' },
   // Transportation - Maritime
   { pattern: /\bdocks?\b/i, type: 'dock' },
   { pattern: /\bmarinas?\b/i, type: 'marina' },
@@ -209,12 +210,24 @@ const TYPE_PATTERNS = [
   { pattern: /\bhot\s*springs?\b/i, type: 'hot_spring' },
   // Monitoring
   { pattern: /\bmonitoring\s*stations?\b/i, type: 'monitoring_station' },
-  { pattern: /\bweather\s*stations?\b/i, type: 'weather_station' }
+  { pattern: /\bweather\s*stations?\b/i, type: 'weather_station' },
+  // Generic fallbacks must stay last so specific tower/mast patterns win.
+  { pattern: /\btowers?\b/i, type: 'telecom' },
+  { pattern: /\bmasts?\b/i, type: 'mast' }
 ];
 
 const NEAR_PATTERN = /\bnear\s+(.+?)(?:\s+(?:in|within|radius)|$)/i;
 const IN_PATTERN = /\bin\s+(.+?)(?:\s+(?:near|within)|$)/i;
 const RADIUS_PATTERN = /(?:within|radius)\s*[:=]?\s*(\d+)\s*(?:km|kilometers?|kilometres?)?/i;
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function containsWord(haystack: string, needle: string): boolean {
+  if (!needle) return false;
+  return new RegExp(`\\b${escapeRegExp(needle)}\\b`, 'i').test(haystack);
+}
 
 function isStructuredQuery(query: string): boolean {
   return STRUCTURED_PATTERN.test(query);
@@ -271,11 +284,11 @@ function extractOperator(query: string): string | null {
   const normalized = query.toLowerCase();
   
   for (const [canonical, aliases] of Object.entries(OPERATOR_ALIASES)) {
-    if (normalized.includes(canonical)) {
+    if (containsWord(normalized, canonical)) {
       return canonical;
     }
     for (const alias of aliases) {
-      if (normalized.includes(alias)) {
+      if (containsWord(normalized, alias)) {
         return canonical;
       }
     }
@@ -295,15 +308,24 @@ function extractType(query: string): string | null {
 
 function extractLocation(query: string): { region: string | null; near: string | null } {
   let cleanedQuery = query;
-  
+
   for (const { pattern } of TYPE_PATTERNS) {
-    cleanedQuery = cleanedQuery.replace(pattern, '');
+    cleanedQuery = cleanedQuery.replace(
+      new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`),
+      ' ',
+    );
   }
   
   for (const [canonical, aliases] of Object.entries(OPERATOR_ALIASES)) {
-    cleanedQuery = cleanedQuery.replace(new RegExp(canonical, 'gi'), '');
+    cleanedQuery = cleanedQuery.replace(
+      new RegExp(`\\b${escapeRegExp(canonical)}\\b`, 'gi'),
+      ' ',
+    );
     for (const alias of aliases) {
-      cleanedQuery = cleanedQuery.replace(new RegExp(alias, 'gi'), '');
+      cleanedQuery = cleanedQuery.replace(
+        new RegExp(`\\b${escapeRegExp(alias)}\\b`, 'gi'),
+        ' ',
+      );
     }
   }
   
@@ -375,6 +397,19 @@ export function parseQuery(query: string): ParsedQuery {
   }
 
   return parseNatural(trimmed);
+}
+
+export function buildLocationQuery(parsed: ParsedQuery): string | null {
+  const base = parsed.near || parsed.region;
+  const parts = [base, parsed.country].filter(
+    (part): part is string => Boolean(part && part.trim()),
+  );
+
+  if (parts.length > 0) {
+    return parts.join(', ');
+  }
+
+  return parsed.country;
 }
 
 export function validateQuery(parsed: ParsedQuery): { valid: boolean; error?: string } {

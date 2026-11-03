@@ -34,20 +34,47 @@ export interface Asset {
   tags: Record<string, string>;
 }
 
+export interface SearchStats {
+  total: number;
+  operators: Record<string, number>;
+  types: Record<string, number>;
+}
+
 export interface SearchResult {
   results: Asset[];
-  stats: {
-    total: number;
-    operators: Record<string, number>;
-    types: Record<string, number>;
-  };
+  stats: SearchStats;
   bounds: [number, number, number, number] | null;
   query: ParsedQuery;
+  truncated: boolean;
+  warning?: string;
 }
 
 export interface SearchError {
   error: string;
   code: string;
+}
+
+export type SummaryProvider = 'openrouter' | 'ollama' | 'exa' | 'local';
+
+export interface SummarySource {
+  title: string;
+  url: string;
+}
+
+export interface Summary {
+  headline: string;
+  overview: string;
+  observations: string[];
+  caveats: string[];
+  followups: string[];
+  provider: SummaryProvider;
+  model: string | null;
+  generatedAt: string;
+  fallback: boolean;
+  degraded: boolean;
+  sources: SummarySource[];
+  groundingUsed: boolean;
+  cached?: boolean;
 }
 
 export const ASSET_TYPE_MAP: Record<string, { osmTags: Record<string, string | string[]> | Record<string, string | string[]>[]; label: string }> = {

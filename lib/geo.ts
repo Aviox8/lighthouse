@@ -1,29 +1,36 @@
 import { GeoResult } from './types';
 
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
-const USER_AGENT = 'Sightline/1.0 (+https://github.com/ni5arga/sightline)';
+const USER_AGENT = 'Lighthouse/1.0 (+https://github.com/Aviox8/lighthouse)';
 const NOMINATIM_API = '/api/nominatim'; // Client-side proxy
 const TIMEOUT_MS = 10000;
 
 // Detect if running on server or client
 const isServer = typeof window === 'undefined';
 
-// Server-side rate limiter for Nominatim (1 request per second)
+// Server-side rate limiter for Nominatim (1 request per second).
+// Queue callers so concurrent requests cannot bypass the interval.
 let lastNominatimRequest = 0;
-const NOMINATIM_MIN_INTERVAL = 1000; // 1 second between requests
+let nominatimQueue: Promise<void> = Promise.resolve();
+const NOMINATIM_MIN_INTERVAL = 1000;
 
 async function waitForRateLimit(): Promise<void> {
   if (!isServer) return;
-  
-  const now = Date.now();
-  const timeSinceLastRequest = now - lastNominatimRequest;
-  
-  if (timeSinceLastRequest < NOMINATIM_MIN_INTERVAL) {
-    const waitTime = NOMINATIM_MIN_INTERVAL - timeSinceLastRequest;
-    await new Promise(resolve => setTimeout(resolve, waitTime));
-  }
-  
-  lastNominatimRequest = Date.now();
+
+  const run = nominatimQueue.then(async () => {
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastNominatimRequest;
+
+    if (timeSinceLastRequest < NOMINATIM_MIN_INTERVAL) {
+      const waitTime = NOMINATIM_MIN_INTERVAL - timeSinceLastRequest;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+
+    lastNominatimRequest = Date.now();
+  });
+
+  nominatimQueue = run.catch(() => undefined);
+  await run;
 }
 
 interface NominatimResponse {
@@ -50,20 +57,32 @@ interface NominatimResponse {
   class: string;
 }
 
-async function fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeout: number,
+  externalSignal?: AbortSignal,
+): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
-  
+  const abortFromExternal = () => controller.abort();
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalSignal.addEventListener('abort', abortFromExternal, { once: true });
+    }
+  }
+
   try {
-    const response = await fetch(url, {
+    return await fetch(url, {
       ...options,
       signal: controller.signal
     });
+  } finally {
     clearTimeout(timeoutId);
-    return response;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
+    externalSignal?.removeEventListener('abort', abortFromExternal);
   }
 }
 
@@ -129,7 +148,11 @@ export async function geocode(query: string, countryCode?: string): Promise<GeoR
   }));
 }
 
-export async function getPlaceSuggestions(query: string, limit: number = 5): Promise<Array<{ name: string; displayName: string }>> {
+export async function getPlaceSuggestions(
+  query: string,
+  limit: number = 5,
+  signal?: AbortSignal,
+): Promise<Array<{ name: string; displayName: string }>> {
   if (!query || query.trim().length < 3) {
     return [];
   }
@@ -162,7 +185,7 @@ export async function getPlaceSuggestions(query: string, limit: number = 5): Pro
   }
 
   try {
-    const response = await fetchWithTimeout(url, { headers }, TIMEOUT_MS);
+    const response = await fetchWithTimeout(url, { headers }, TIMEOUT_MS, signal);
 
     if (!response.ok) {
       return [];
@@ -213,6 +236,9 @@ export async function getPlaceSuggestions(query: string, limit: number = 5): Pro
       };
     });
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return [];
+    }
     console.warn('Place suggestion fetch failed:', error);
     return [];
   }
