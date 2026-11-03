@@ -190,8 +190,8 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * The keyed free plan runs one query at a time, so a second search started
- * while the first is still running gets a 429 with Retry-After. Wait briefly
- * and retry once instead of dropping to the loaded public mirrors.
+ * while the first is still running gets a 429 (or 503 when busy). Wait for the
+ * slot and retry instead of dropping to the loaded public mirrors.
  */
 async function fetchWithBusyRetry(
   endpoint: OverpassEndpoint,
@@ -199,27 +199,33 @@ async function fetchWithBusyRetry(
   timeout: number,
   startedAt: number,
 ): Promise<Response> {
-  const response = await fetchWithTimeout(endpoint.url, options, timeout);
+  const isBusyStatus = (status: number) => status === 429 || status === 503;
 
-  if (!endpoint.keyed || response.status !== 429) {
+  let response = await fetchWithTimeout(endpoint.url, options, timeout);
+
+  if (!endpoint.keyed) {
     return response;
   }
 
-  const retryAfterSeconds = Number(response.headers?.get('retry-after')) || 1;
-  const waitMs = Math.min(Math.max(retryAfterSeconds, 0.2) * 1000, 2000);
-  const remainingMs = OVERALL_BUDGET_MS - (Date.now() - startedAt);
+  // Two attempts: the competing query usually finishes within a few seconds.
+  for (let attempt = 0; attempt < 2 && isBusyStatus(response.status); attempt++) {
+    const retryAfterSeconds = Number(response.headers?.get('retry-after')) || 1;
+    const waitMs = Math.min(Math.max(retryAfterSeconds, 0.2) * 1000, 5000);
+    const remainingMs = OVERALL_BUDGET_MS - (Date.now() - startedAt);
 
-  if (remainingMs - waitMs < 3000) {
-    return response;
+    if (remainingMs - waitMs < 4000) {
+      break;
+    }
+
+    await sleep(waitMs);
+    response = await fetchWithTimeout(
+      endpoint.url,
+      options,
+      Math.min(timeout, OVERALL_BUDGET_MS - (Date.now() - startedAt)),
+    );
   }
 
-  await sleep(waitMs);
-
-  return fetchWithTimeout(
-    endpoint.url,
-    options,
-    Math.min(timeout, OVERALL_BUDGET_MS - (Date.now() - startedAt)),
-  );
+  return response;
 }
 
 function getResultWarning(remark: string): string {
