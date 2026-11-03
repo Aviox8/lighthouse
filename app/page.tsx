@@ -193,15 +193,10 @@ function HomeContent() {
       if (sanitized) {
         setInitialQuery(sanitized);
         handleSearch(sanitized, false);
-        return;
       }
     }
-
-    // No valid query - load random default
-    const randomQuery =
-      INITIAL_QUERIES[Math.floor(Math.random() * INITIAL_QUERIES.length)];
-    setInitialQuery(randomQuery);
-    handleSearch(randomQuery, true);
+    // No query in the URL: show the empty state. A search only runs when the
+    // user submits one or opens a shared "?q=" link.
   }, [searchParams, handleSearch]);
 
   // Generate an aggregate-only summary whenever a search succeeds.

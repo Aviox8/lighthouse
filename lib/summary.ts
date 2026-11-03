@@ -655,6 +655,11 @@ function markProviderFailure(provider: string): void {
   providerCooldowns.set(provider, Date.now());
 }
 
+/** Test seam: clear failure cooldowns so each test starts from a clean state. */
+export function resetProviderCooldowns(): void {
+  providerCooldowns.clear();
+}
+
 export async function generateSummary(
   input: SummaryInput,
   options: GenerateSummaryOptions = {},

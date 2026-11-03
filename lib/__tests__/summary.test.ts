@@ -3,6 +3,7 @@ import {
   createLocalSummary,
   generateSummary,
   getSummaryCacheKey,
+  resetProviderCooldowns,
   type SummaryInput,
 } from '@/lib/summary';
 
@@ -58,6 +59,7 @@ function clearProviderEnv() {
 
 beforeEach(() => {
   clearProviderEnv();
+  resetProviderCooldowns();
 });
 
 afterEach(() => {
