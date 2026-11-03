@@ -11,6 +11,17 @@ const OVERPASS_APIS = [
 const TIMEOUT_MS = 15000;
 const OVERALL_BUDGET_MS = 22000;
 const USER_AGENT = 'Lighthouse/1.0 (+https://github.com/Aviox8/lighthouse)';
+const MAX_TAG_KEY_LENGTH = 128;
+const MAX_TAG_VALUE_LENGTH = 256;
+
+/** Cap tag sizes to keep serverless response payloads small; keys/values stay valid. */
+function trimTags(tags: Record<string, string>): Record<string, string> {
+  const trimmed: Record<string, string> = {};
+  for (const [key, value] of Object.entries(tags)) {
+    trimmed[key.slice(0, MAX_TAG_KEY_LENGTH)] = String(value).slice(0, MAX_TAG_VALUE_LENGTH);
+  }
+  return trimmed;
+}
 export const MAX_RESULTS = 5000;
 
 interface OverpassElement {
@@ -224,7 +235,7 @@ export async function executeQuery(query: string): Promise<OverpassQueryResult> 
         .map(el => {
           const lat = el.lat ?? el.center!.lat;
           const lon = el.lon ?? el.center!.lon;
-          const tags = el.tags || {};
+          const tags = trimTags(el.tags || {});
           
           return {
             id: `${el.type}/${el.id}`,
