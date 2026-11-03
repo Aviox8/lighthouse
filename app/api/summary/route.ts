@@ -10,7 +10,7 @@ import type { Summary } from '@/lib/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 const MAX_BODY_BYTES = 32_768;
 const DEFAULT_CACHE_TTL_MS = 6 * 60 * 60 * 1000;

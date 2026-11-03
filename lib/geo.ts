@@ -3,7 +3,7 @@ import { GeoResult } from './types';
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
 const USER_AGENT = 'Lighthouse/1.0 (+https://github.com/Aviox8/lighthouse)';
 const NOMINATIM_API = '/api/nominatim'; // Client-side proxy
-const TIMEOUT_MS = 10000;
+const TIMEOUT_MS = 7000;
 
 // Detect if running on server or client
 const isServer = typeof window === 'undefined';
@@ -281,31 +281,6 @@ export function calculateBoundingBox(
     lon - lonDelta,
     lon + lonDelta
   ];
-}
-
-export function expandBoundingBox(
-  bbox: [number, number, number, number],
-  factor: number = 1.1
-): [number, number, number, number] {
-  const latCenter = (bbox[0] + bbox[1]) / 2;
-  const lonCenter = (bbox[2] + bbox[3]) / 2;
-  const latHalf = (bbox[1] - bbox[0]) / 2 * factor;
-  const lonHalf = (bbox[3] - bbox[2]) / 2 * factor;
-
-  return [
-    latCenter - latHalf,
-    latCenter + latHalf,
-    lonCenter - lonHalf,
-    lonCenter + lonHalf
-  ];
-}
-
-export function bboxToString(bbox: [number, number, number, number]): string {
-  return `${bbox[0]},${bbox[2]},${bbox[1]},${bbox[3]}`;
-}
-
-export function isBoundingBoxTooLarge(): boolean {
-  return false;
 }
 
 /**

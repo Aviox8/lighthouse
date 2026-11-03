@@ -11,7 +11,7 @@ import type {
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OLLAMA_CLOUD_URL = 'https://ollama.com';
 const EXA_BASE_URL = 'https://api.exa.ai';
-const DEFAULT_TIMEOUT_MS = 12000;
+const DEFAULT_TIMEOUT_MS = 7000;
 
 export interface SummaryInput {
   query: string;
@@ -370,7 +370,7 @@ async function resolveOllamaModel(
         Accept: 'application/json',
         ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
       },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(2500),
     });
     if (!response.ok) throw new Error(`tags ${response.status}`);
 
@@ -642,6 +642,10 @@ export async function generateSummary(
 ): Promise<Summary> {
   const facts = buildFacts(input);
   const allowAi = options.allowAi !== false;
+  // Hard budget so the chain always finishes inside Vercel's 30s function cap,
+  // even with slow or unreachable providers.
+  const chainDeadline = Date.now() + 18000;
+  const haveBudget = () => Date.now() < chainDeadline;
 
   if (!allowAi) {
     return createLocalSummary(input, options.localNotice);
@@ -666,7 +670,7 @@ export async function generateSummary(
     }
   }
 
-  if (hasOpenRouter) {
+  if (hasOpenRouter && haveBudget()) {
     try {
       const result = await callOpenRouter(facts, grounding);
       return { ...result.summary, degraded };
@@ -675,7 +679,7 @@ export async function generateSummary(
     }
   }
 
-  if (hasOllama) {
+  if (hasOllama && haveBudget()) {
     try {
       const result = await callOllama(facts, grounding);
       return { ...result.summary, degraded };
@@ -684,7 +688,7 @@ export async function generateSummary(
     }
   }
 
-  if (hasExa) {
+  if (hasExa && haveBudget()) {
     try {
       const result = await callExaAnswer(facts, grounding);
       return { ...result.summary, degraded };

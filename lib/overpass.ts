@@ -2,11 +2,14 @@ import { Asset, ASSET_TYPE_MAP } from './types';
 
 const OVERPASS_APIS = [
   'https://overpass-api.de/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-  'https://overpass.private.coffee/api/interpreter'
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
 ];
 
-const TIMEOUT_MS = 30000;
+// Keep well under Vercel's 30s serverless cap, including Nominatim and JSON overhead.
+const TIMEOUT_MS = 15000;
+const OVERALL_BUDGET_MS = 22000;
 const USER_AGENT = 'Lighthouse/1.0 (+https://github.com/Aviox8/lighthouse)';
 export const MAX_RESULTS = 5000;
 
@@ -87,7 +90,7 @@ export function buildOverpassQuery(
   }
 
   const query = `
-[out:json][timeout:25][maxsize:50000000];
+[out:json][timeout:12][maxsize:50000000];
 (
 ${unionParts.join('\n')}
 );
@@ -112,7 +115,7 @@ export function buildMultiTypeQuery(
   }
   
   const query = `
-[out:json][timeout:25][maxsize:50000000];
+[out:json][timeout:12][maxsize:50000000];
 (
   node["operator"~"${escapeOverpassString(operator)}",i]${locationFilter};
   way["operator"~"${escapeOverpassString(operator)}",i]${locationFilter};
@@ -161,10 +164,16 @@ function getResultWarning(remark: string): string {
 
 export async function executeQuery(query: string): Promise<OverpassQueryResult> {
   let lastError: Error | null = null;
+  const startedAt = Date.now();
 
   for (let i = 0; i < OVERPASS_APIS.length; i++) {
     const apiEndpoint = OVERPASS_APIS[i];
-    
+    const remainingMs = OVERALL_BUDGET_MS - (Date.now() - startedAt);
+    if (remainingMs <= 1500) {
+      break;
+    }
+    const attemptTimeout = Math.min(TIMEOUT_MS, remainingMs);
+
     try {
       const response = await fetchWithTimeout(apiEndpoint, {
         method: 'POST',
@@ -173,7 +182,7 @@ export async function executeQuery(query: string): Promise<OverpassQueryResult> 
           'User-Agent': USER_AGENT
         },
         body: `data=${encodeURIComponent(query)}`
-      }, TIMEOUT_MS);
+      }, attemptTimeout);
 
       if (!response.ok) {
         if (response.status === 429) {
