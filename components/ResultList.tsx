@@ -201,18 +201,20 @@ export default function ResultList({
 
   return (
     <div className="results-panel">
-      <div className="results-header">
-        <span className="results-count">
-          {displayCount === totalCount
-            ? `${displayCount.toLocaleString()} results`
-            : `${displayCount.toLocaleString()} of ${totalCount.toLocaleString()}`}
-        </span>
-        {visibleResults.length < displayCount && (
-          <span className="results-visible-count">
-            showing {visibleResults.length.toLocaleString()}
+      {filteredResults.length > 0 && (
+        <div className="results-header">
+          <span className="results-count">
+            {displayCount === totalCount
+              ? `${displayCount.toLocaleString()} results`
+              : `${displayCount.toLocaleString()} of ${totalCount.toLocaleString()}`}
           </span>
-        )}
-      </div>
+          {visibleResults.length < displayCount && (
+            <span className="results-visible-count">
+              showing {visibleResults.length.toLocaleString()}
+            </span>
+          )}
+        </div>
+      )}
 
       {(truncated || warning) && (
         <div className="results-warning" role="status">
@@ -294,6 +296,7 @@ export default function ResultList({
               onClick={() => onSelect(asset.id)}
               onKeyDown={(e) => handleKeyDown(e, asset.id, index)}
               tabIndex={0}
+              aria-label={`${asset.name}, ${asset.type}${asset.operator ? `, ${asset.operator}` : ""}`}
             >
               <div className="result-header">
                 <span className="result-name">{asset.name}</span>
@@ -302,8 +305,7 @@ export default function ResultList({
 
               {asset.operator && (
                 <div className="result-operator">
-                  <span className="label">Operator:</span>
-                  <span className="value">{asset.operator}</span>
+                  <span className="result-operator-chip">op: {asset.operator}</span>
                 </div>
               )}
 

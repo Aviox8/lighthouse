@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { Asset } from "@/lib/types";
 
 interface OSMMetadata {
@@ -25,6 +25,7 @@ export default function AssetInfoModal({
   const [metadata, setMetadata] = useState<OSMMetadata | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!isOpen || !asset) {
@@ -69,6 +70,25 @@ export default function AssetInfoModal({
     fetchMetadata();
   }, [isOpen, asset]);
 
+  // Escape closes; focus moves to the close button on open and back to the
+  // previously-focused element (e.g. the "More Info" button) on close.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    closeButtonRef.current?.focus();
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen || !asset) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -88,11 +108,23 @@ export default function AssetInfoModal({
   };
 
   return (
-    <div className="modal-backdrop" onClick={handleBackdropClick}>
+    <div
+      className="modal-backdrop"
+      onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-label={asset.name}
+    >
       <div className="modal-content">
         <div className="modal-header">
           <h2>{asset.name}</h2>
-          <button className="modal-close" onClick={onClose} title="Close">
+          <button
+            ref={closeButtonRef}
+            className="modal-close"
+            onClick={onClose}
+            title="Close"
+            aria-label="Close details"
+          >
             ×
           </button>
         </div>

@@ -91,7 +91,7 @@ export default function SearchBar({
       return;
     }
     
-    // Debounce the API call - increased to 1500ms to respect Nominatim rate limit (1 req/sec)
+    // Debounce the API call (800ms); server-side queue in geo.ts enforces Nominatim 1 req/sec.
     placeDebounceTimerRef.current = setTimeout(async () => {
       const controller = new AbortController();
       placeAbortControllerRef.current = controller;
@@ -114,7 +114,7 @@ export default function SearchBar({
           setLoadingPlaces(false);
         }
       }
-    }, 1500); // 1500ms debounce for Nominatim rate limit
+    }, 800); // 800ms debounce; server-side queue in geo.ts handles Nominatim 1 req/sec.
 
     return () => {
       if (placeDebounceTimerRef.current) {
@@ -454,6 +454,7 @@ export default function SearchBar({
             spellCheck={false}
           />
           {loading && <div className="search-spinner" />}
+          {!query && !loading && <span className="search-kbd">/</span>}
           <button
             type="submit"
             className="search-button"
@@ -475,9 +476,9 @@ export default function SearchBar({
         <div ref={suggestionsRef} className="search-suggestions">
           <div className="suggestions-header">
             {suggestions[0]?.type === "place" ? "Places" : "Suggestions"}
-            {loadingPlaces && suggestions[0]?.type === "place" && (
+            {loadingPlaces && (
               <span style={{ marginLeft: "8px", fontSize: "12px", opacity: 0.6 }}>
-                Loading...
+                Looking up places…
               </span>
             )}
           </div>

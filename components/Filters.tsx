@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { SearchResult } from "@/lib/types";
+import { ASSET_TYPE_MAP } from "@/lib/types";
 
 interface FiltersProps {
   searchResult: SearchResult | null;
@@ -21,6 +23,19 @@ export default function Filters({
   onRadiusSearch,
 }: FiltersProps) {
   const [editRadius, setEditRadius] = useState<number | null>(null);
+
+  const footer = (
+    <div className="filters-footer">
+      <span className="filters-footer-note">Built on OpenStreetMap</span>
+      <nav className="filters-footer-nav" aria-label="About Lighthouse">
+        <Link href="/about">About</Link>
+        <Link href="/types">Types</Link>
+        <Link href="/dev">Developer</Link>
+        <Link href="/privacy">Privacy</Link>
+        <Link href="/terms">Terms</Link>
+      </nav>
+    </div>
+  );
 
   const sortedOperators = useMemo(() => {
     if (!searchResult?.stats.operators) return [];
@@ -55,6 +70,7 @@ export default function Filters({
           </svg>
           <p>Run a search to see filters</p>
         </div>
+        {footer}
       </aside>
     );
   }
@@ -84,7 +100,7 @@ export default function Filters({
                   onTypeChange(selectedType === type ? null : type)
                 }
               >
-                <span className="filter-name">{type}</span>
+                <span className="filter-name">{ASSET_TYPE_MAP[type]?.label ?? type}</span>
                 <span className="filter-count">{count.toLocaleString()}</span>
               </button>
             ))}
@@ -191,6 +207,7 @@ export default function Filters({
           </div>
         </div>
       )}
+      {footer}
     </aside>
   );
 }
