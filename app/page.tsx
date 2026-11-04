@@ -375,6 +375,7 @@ function HomeContent() {
               target="_blank"
               rel="noopener noreferrer"
               className="header-link"
+              aria-label="Source code and documentation on GitHub"
             >
               <svg
                 className="header-link-icon"
@@ -478,6 +479,8 @@ function HomeContent() {
             filterOperator={filterOperator}
             filterType={filterType}
             loading={loading}
+            onQuickSearch={handleSearch}
+            hasSearched={hasSearched}
           />
         </div>
       </main>

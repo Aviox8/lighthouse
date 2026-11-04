@@ -10,6 +10,7 @@
 
 import { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import L from "leaflet";
+import Link from "next/link";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -25,6 +26,9 @@ interface MapViewProps {
   filterOperator: string | null;
   filterType: string | null;
   loading?: boolean;
+  onQuickSearch?: (query: string) => void;
+  /** False before the first completed search — shows the getting-started hero. */
+  hasSearched?: boolean;
 }
 
 function escapeHtml(text: string): string {
@@ -240,6 +244,8 @@ export default function MapView({
   filterOperator,
   filterType,
   loading = false,
+  onQuickSearch,
+  hasSearched = false,
 }: MapViewProps) {
   const [showClusters, setShowClusters] = useState(true);
   const [modalAsset, setModalAsset] = useState<Asset | null>(null);
@@ -794,7 +800,6 @@ export default function MapView({
             type="checkbox"
             checked={showClusters}
             onChange={e => setShowClusters(e.target.checked)}
-            style={{ accentColor: '#f0b429' }}
           />
           <label htmlFor="cluster-toggle">
             Cluster Markers
@@ -810,6 +815,49 @@ export default function MapView({
           <div className="map-searching" role="status" aria-live="polite">
             <span className="map-searching-dot" />
             Searching the map…
+          </div>
+        )}
+        {results.length === 0 && !loading && !hasSearched && (
+          <div className="map-hero" role="region" aria-label="Getting started">
+            <svg className="map-hero-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+              <g stroke="currentColor" strokeWidth="5" strokeLinecap="round" opacity="0.9">
+                <line x1="32" y1="4" x2="32" y2="10" />
+                <line x1="13" y1="13" x2="17.5" y2="17.5" />
+                <line x1="51" y1="13" x2="46.5" y2="17.5" />
+              </g>
+              <path d="M26.5 22.5 L24.5 48 L39.5 48 L37.5 22.5 Z" fill="currentColor" opacity="0.9" />
+              <rect x="25.5" y="14.5" width="13" height="6.5" rx="1.5" fill="var(--accent)" stroke="none" />
+            </svg>
+            <p className="map-hero-eyebrow">OpenStreetMap infrastructure intelligence</p>
+            <h1 className="map-hero-title">Find the physical world, fast.</h1>
+            <p className="map-hero-sub">
+              Search 200+ asset types across OpenStreetMap — telecom towers, power plants,
+              data centers, ports and more — then filter, map and summarize.
+            </p>
+            <div className="map-hero-examples">
+              {[
+                "towers in delhi",
+                "power plants in texas",
+                "airports near london",
+                "wind farms near copenhagen",
+                "data centers in california",
+                "train stations in tokyo",
+              ].map((example) => (
+                <button
+                  key={example}
+                  type="button"
+                  className="map-hero-chip"
+                  onClick={() => onQuickSearch?.(example)}
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
+            <p className="map-hero-foot">
+              No account needed ·{" "}
+              <Link href="/types">Browse asset types →</Link> ·{" "}
+              <Link href="/dev">How it works →</Link>
+            </p>
           </div>
         )}
       </div>
