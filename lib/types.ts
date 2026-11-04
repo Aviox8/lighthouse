@@ -359,7 +359,10 @@ export const ASSET_TYPE_MAP: Record<string, { osmTags: Record<string, string | s
     label: 'Train Station'
   },
   metro: {
-    osmTags: { 'railway': 'subway_entrance' },
+    osmTags: [
+      { 'railway': 'station', 'station': 'subway' },
+      { 'station': 'subway' }
+    ],
     label: 'Metro Station'
   },
   parking: {
