@@ -81,6 +81,7 @@ function HomeContent() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentQuery, setCurrentQuery] = useState<string>("");
+  const [hasSearched, setHasSearched] = useState<boolean>(false);
   const [initialQuery, setInitialQuery] = useState<string>("");
 
   // Summary state
@@ -127,6 +128,7 @@ function HomeContent() {
       setFilterOperator(null);
       setFilterType(null);
       setCurrentQuery(query);
+      setHasSearched(true);
       setSearchResult(null);
       setSummary(null);
       setSummaryError(null);
@@ -446,6 +448,7 @@ function HomeContent() {
               truncated={searchResult?.truncated}
               warning={searchResult?.warning}
               loading={loading}
+              hasSearched={hasSearched}
             />
           </div>
           {breakpoint === "desktop" && (

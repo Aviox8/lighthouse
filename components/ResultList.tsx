@@ -22,6 +22,7 @@ interface ResultListProps {
   truncated?: boolean;
   warning?: string;
   loading?: boolean;
+  hasSearched?: boolean;
 }
 
 export default function ResultList({
@@ -33,6 +34,7 @@ export default function ResultList({
   truncated = false,
   warning,
   loading = false,
+  hasSearched = true,
 }: ResultListProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLButtonElement>(null);
@@ -175,10 +177,21 @@ export default function ResultList({
             d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
           />
         </svg>
-        <p>No results</p>
-        <p className="results-empty-hint">
-          Run a search to find infrastructure
-        </p>
+        {hasSearched ? (
+          <>
+            <p>No results</p>
+            <p className="results-empty-hint">
+              Nothing matched this search — try a different area or asset type
+            </p>
+          </>
+        ) : (
+          <>
+            <p>No search yet</p>
+            <p className="results-empty-hint">
+              Type a query above, like &ldquo;towers in dubai&rdquo; or &ldquo;airports near london&rdquo;
+            </p>
+          </>
+        )}
       </div>
     );
   }
