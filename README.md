@@ -519,6 +519,14 @@ app/
 ├── page.tsx              # Main application page
 ├── layout.tsx            # Root layout
 ├── globals.css           # Global styles
+├── about/                # About, architecture, API & self-hosting
+├── types/                # Browsable asset-type catalog
+├── terms/                # Terms of Service
+├── privacy/              # Privacy notice
+├── dev/                  # About the developer & contributing
+├── error.tsx             # Global error boundary
+├── not-found.tsx         # Branded 404
+├── robots.ts · sitemap.ts # Crawl metadata (NEXT_PUBLIC_SITE_URL)
 └── api/
     ├── search/
     │   └── route.ts      # Search API endpoint

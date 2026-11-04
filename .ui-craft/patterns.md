@@ -33,4 +33,17 @@ follow-up chips. Loading = 3-line shimmer; error = inline retry.
 **Constraints**: Always shows provider name; never hides caveats; follow-up chips are
 queries, not links; no individual asset data appears in the card.
 
+## Pattern: Static Trust Pages
+
+**Description**: Terms, Privacy and Developer ship as content routes behind a
+shared `StaticPage` shell: same header/footer as the app, same tokens, Inter for
+prose, JetBrains Mono for code and data. Amber is reserved for the logo mark and
+hover accents; body copy stays secondary slate.
+
+**Usage**: `/terms`, `/privacy`, `/dev` — all legal/documentation content lives here.
+
+**Constraints**: Never introduce a page-local component library or one-off
+styling; reuse `StaticPage`. Never put marketing copy in `static-prose`; keep it
+factual and fact-dense. Tables and code blocks render in Mono Data Voice.
+
 <!-- Add more patterns below. -->
