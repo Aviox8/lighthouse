@@ -1,22 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Menu, X } from "lucide-react";
 import SmoothButton from "@/components/smoothui/smooth-button";
 
 const NAV_LINKS = [
-  { href: "/", label: "Home" },
+  { href: "/docs", label: "Docs" },
+  { href: "/types", label: "Types" },
+  { href: "/about", label: "About" },
 ];
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <nav className="navbar" aria-label="Main navigation">
       <div className="navbar-inner">
         <Link href="/" className="navbar-logo">
-          <span className="navbar-logo-mark">L</span>
+          <span className="navbar-logo-mark" aria-hidden="true">
+            L
+          </span>
           <span className="navbar-logo-text">Lighthouse</span>
         </Link>
 
@@ -26,6 +32,7 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               className="navbar-link"
+              data-active={pathname === link.href ? "true" : "false"}
             >
               {link.label}
             </Link>
@@ -36,8 +43,13 @@ export default function Navbar() {
             size="sm"
             asChild
           >
-            <a href="https://github.com/Aviox8/lighthouse" target="_blank" rel="noopener noreferrer">
-              View source <ChevronRight size={14} strokeWidth={2} />
+            <a
+              href="https://github.com/Aviox8/lighthouse"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View source{" "}
+              <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
             </a>
           </SmoothButton>
         </div>
