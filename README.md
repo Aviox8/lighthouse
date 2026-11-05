@@ -18,7 +18,7 @@ Lighthouse enables searching, monitoring, and analyzing real-world infrastructur
 - Surveillance cameras and emergency infrastructure
 - Transportation hubs (train stations, bus stations, taxi stands)
 
-And many more asset types across 30+ categories with over 200 searchable infrastructure types.
+And 230+ asset types across 30+ categories — the full, generated catalog is published at [`/types`](https://github.com/Aviox8/lighthouse#project-structure) and browsable at the site's `/types` route.
 
 ## Architecture
 
@@ -29,7 +29,7 @@ flowchart TB
     classDef external fill:#f59e0b,stroke:#d97706,color:#fff
 
     subgraph FE["Frontend"]
-        SearchBar["SearchBar"]
+        Homepage["Homepage — landing + query input"]
         Filters["Filters"]
         ResultList["ResultList"]
         SummaryCard["SummaryCard"]
@@ -53,7 +53,7 @@ flowchart TB
         LLM["OpenRouter / Ollama — Optional LLM"]
     end
 
-    SearchBar & Filters & ResultList & MapView -->|"POST /api/search"| route
+    Homepage & Filters & ResultList & MapView -->|"POST /api/search"| route
     SummaryCard -->|"POST /api/summary"| summaryRoute
 
     route -->|"parse query"| parser
@@ -67,7 +67,7 @@ flowchart TB
     summary -.->|"optional"| Exa
     summary -.->|"optional"| LLM
 
-    class SearchBar,Filters,ResultList,SummaryCard,MapView frontend
+    class Homepage,Filters,ResultList,SummaryCard,MapView frontend
     class route,summaryRoute,parser,geo,overpass,summary,cache backend
     class Nominatim,OverpassAPI,Exa,LLM external
 ```
@@ -516,44 +516,39 @@ npm run build
 
 ```
 app/
-├── page.tsx              # Main application page
-├── layout.tsx            # Root layout
-├── globals.css           # Global styles
-├── about/                # About, architecture, API & self-hosting
-├── types/                # Browsable asset-type catalog
-├── terms/                # Terms of Service
-├── privacy/              # Privacy notice
-├── dev/                  # About the developer & contributing
+├── page.tsx              # Landing + workbench (single route, two states)
+├── layout.tsx            # Root layout (<Analytics /> only)
+├── globals.css           # The entire design system (monochrome tokens)
 ├── error.tsx             # Global error boundary
-├── not-found.tsx         # Branded 404
+├── not-found.tsx         # 404
 ├── robots.ts · sitemap.ts # Crawl metadata (NEXT_PUBLIC_SITE_URL)
+├── about/                # About the project, FAQ
+├── docs/                 # Query grammar, API, env vars, self-hosting
+├── types/                # Generated asset-type catalog (TypesCatalog)
+├── dev/                  # Developer & contribution guide
+├── license/ legal/ terms/ privacy/   # Docs-site legal set
 └── api/
-    ├── search/
-    │   └── route.ts      # Search API endpoint
-    ├── summary/
-    │   └── route.ts      # AI summary endpoint
-    └── nominatim/
-        └── route.ts      # Rate-limited geocoding proxy
+    ├── search/route.ts   # POST /api/search
+    ├── summary/route.ts  # POST /api/summary (aggregate stats only)
+    └── nominatim/route.ts
 
 components/
-├── SearchBar.tsx         # Query input
-├── Filters.tsx           # Filter sidebar
-├── ResultList.tsx        # Paginated results display
-├── SummaryCard.tsx       # AI/local summary display
-├── MapView.tsx           # Leaflet map
-├── ShareButton.tsx       # Share functionality
-└── ui/
-    └── scroll-area.tsx   # UI components
+├── Homepage.tsx          # Landing: hero command, readout, sections
+├── Navbar.tsx · Footer.tsx · CTA.tsx          # Site chrome
+├── StaticPage.tsx        # Docs shell: sidebar nav + auto-TOC
+├── CodeBlock.tsx · TypesCatalog.tsx
+├── Filters.tsx · ResultList.tsx · SummaryCard.tsx · MapView.tsx
+├── smoothui/             # Local primitives (button, input, tabs, checkbox…)
+└── ui/scroll-area.tsx
 
 lib/
-├── types.ts              # Type definitions
-├── parser.ts             # Query parsing and NLP
-├── geo.ts                # Nominatim integration
-├── overpass.ts           # Overpass API queries
-├── summary.ts            # Provider chain and local summary
-├── cache.ts              # In-memory caching
-├── search-index.ts       # Search indexing
-└── __tests__/            # Parser, Overpass, and summary tests
+├── types.ts              # ASSET_TYPE_MAP — 230+ queryable asset types
+├── parser.ts             # Query grammar: phrases + structured tokens
+├── geo.ts                # Nominatim integration, 1 req/s throttle
+├── overpass.ts           # Overpass queries, mirrors, 5,000-feature cap
+├── summary.ts            # Provider chain + rate limits + caching
+├── cache.ts · search-index.ts
+└── __tests__/            # parser.ts, overpass.ts, summary.ts suites
 ```
 
 ## Deployment
@@ -610,4 +605,4 @@ The presence or absence of infrastructure in OSM should not be taken as authorit
 
 ## License
 
-The original copyright notice is retained in [LICENSE](LICENSE).
+MIT — the full text is the [`LICENSE`](LICENSE) file and the [`/license`](./app/license/page.tsx) page. The MIT license covers this code only: OpenStreetMap data underneath carries its own ODbL terms (attribution + share-alike), spelled out in the project's `/legal` page.

@@ -1,10 +1,12 @@
 # Project Brief
 
 ## Design Intent
-A calm, high-signal instrument for OpenStreetMap infrastructure intelligence. Dense
-where it needs to be (lists, filters, coords), quiet everywhere else. The beacon
-(amber) is used sparingly — active states, key counts, primary actions. It is not a
-dashboard; it is a precise tool.
+A dense, engineering-grade instrument for OpenStreetMap infrastructure
+intelligence — Palantir-terminal restraint, not a website with a theme. Strict
+monochrome (white on black), zero corner radius, type-and-hairline structure with
+no decorative color anywhere: severity and emphasis come from weight, spacing,
+and copy — never from hue. Dense where it needs to be (lists, filters, coords,
+tables), quiet everywhere else.
 
 ## Audience
 Infrastructure analysts, OSINT researchers, and enthusiasts on desktop and mobile.
@@ -14,13 +16,28 @@ not want marketing treatment, decoration, or "AI dashboard" energy.
 ## Voice and Tone
 Direct and factual. No marketing fluff. Error states name the likely cause. Warnings
 say exactly what is incomplete (e.g. the 5,000-feature result cap). AI summaries are
-labeled as such with their provider, and never present as measured fact.
+labeled as such with their provider, and never present as measured fact. The
+landing page states numbers that exist (230+ types from ASSET_TYPE_MAP, 5,000 cap,
+1 req/s geocoding) — nothing is promised that the code doesn't do.
 
 ## Constraints
-- Dark-only interface (no light theme yet). Deep slate surfaces, not pure black.
-- One accent (amber, #f0b429) plus semantic info/success/error colors. No gradients
-  for decoration, no glow effects, no glassmorphism.
-- Focus-visible rings everywhere; `prefers-reduced-motion` honored; WCAG AA text
-  contrast on all surfaces.
-- Map (Leaflet) must stay fast with 5,000+ markers; popups are lazy-rendered.
+- Dark-only interface. Pure #000 canvas, #0a0a0a surfaces; no tinted grays, no
+  light theme.
+- One accent: white. No gradients, no glows, no glassmorphism, no color coding.
+- Zero border radius on every surface, control, and media (map popups included).
+- Focus-visible outlines everywhere; `prefers-reduced-motion` honored; WCAG AA
+  contrast on all text (muted tier was bumped to 0.55 alpha for this).
+- Map (Leaflet/react-leaflet) stays keyless; popups lazy-rendered; 5,000+ marker
+  traffic served by the native marker layer.
+- Body scroll is locked for the workbench; landing (`.home`) and docs
+  (`.static-shell`) scroll inside their own shells.
 - Aggregate-only AI summaries; no individual asset records sent to providers.
+
+## Surfaces
+- Workbench (`/` after search): 3-column panel grid (filters / results / map),
+  resizable results column, mobile tab switching.
+- Landing (`/`): hairline-grid hero around a real command input, system readout,
+  open-data strip, feature grid, query-language table, CTA band.
+- Docs shell (`/docs`, `/about`, `/types`, `/dev`, `/license`, `/legal`,
+  `/terms`, `/privacy`): sticky site sidebar (section groups + auto "On this
+  page" TOC), article column with bordered tables, code blocks, callouts.

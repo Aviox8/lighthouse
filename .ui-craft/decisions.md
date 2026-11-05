@@ -1,5 +1,26 @@
 # Design Decisions
 
+### 2026-11-06 — Full monochrome conversion + open-source docs set
+
+**Status**: accepted
+
+The amber/slate system was replaced by strict monochrome: #000 canvas, #0a0a0a
+surfaces, white accent, zero radius everywhere (map popups included). Severity
+colors collapsed to white with 0.08 soft washes — emphasis is typographic, not
+chromatic. `globals.css` was rewritten as the single design system; dead feature
+CSS (clustering, layers control, SearchBar/modals, workbench remnants) was pruned
+and class usage was verified against source (the only "unused" selectors left are
+Leaflet runtime classes and dynamic `summary-provider-*` variants). Landing was
+rebuilt around a real command input (`/` and ⌘K actually focus it), a system
+readout, and honest numbers (230+ types, 5,000 cap, radius in km). The
+open-source page set moved to a Mapillary-style docs shell (`StaticPage`: site
+sidebar + auto-TOC from h2s): /docs, /about, /types (generated from
+ASSET_TYPE_MAP), /dev, /license, /legal, /terms, /privacy, plus error/404 and
+robots/sitemap. Closed separately: cached-badge class typo, radius unit
+mislabel (m→km) plus a working radius commit (re-runs the query with an updated
+`radius:` token), the missing 5,000-cap truncation notice in ResultList, the
+results-panel scrolling collapse, and deletion of the unused AssetInfoModal.
+
 ### 2026-11-05 — /dev is the developer page; /about absorbs project docs
 
 **Status**: accepted
