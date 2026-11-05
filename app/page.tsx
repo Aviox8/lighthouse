@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Homepage from "@/components/Homepage";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { TabsRoot, TabsList, TabsTab, TabsIndicator } from "@/components/smoothui/tabs";
 import Filters from "@/components/Filters";
 import ResultList from "@/components/ResultList";
@@ -14,7 +15,6 @@ import type {
   SearchError,
   SearchStats,
   Summary,
-  Asset,
 } from "@/lib/types";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
@@ -79,7 +79,6 @@ function HomeContent() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentQuery, setCurrentQuery] = useState<string>("");
-  const [initialQuery, setInitialQuery] = useState<string>("");
 
   const [summary, setSummary] = useState<Summary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -87,8 +86,6 @@ function HomeContent() {
   const [summaryRetryKey, setSummaryRetryKey] = useState(0);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
   const [filterOperator, setFilterOperator] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string | null>(null);
 
@@ -183,24 +180,11 @@ function HomeContent() {
     if (urlQuery) {
       const sanitized = sanitizeQuery(urlQuery);
       if (sanitized) {
-        setInitialQuery(sanitized);
+        setCurrentQuery(sanitized);
         handleSearch(sanitized, false);
       }
     }
   }, [searchParams, handleSearch]);
-
-  const handleClear = useCallback(() => {
-    setCurrentQuery("");
-    setInitialQuery("");
-    setSearchResult(null);
-    setSelectedId(null);
-    setError(null);
-    setSummary(null);
-    setSummaryError(null);
-    setLoading(false);
-    lastUrlQuery.current = null;
-    router.replace(window.location.pathname, { scroll: false });
-  }, [router]);
 
   useEffect(() => {
     if (!searchResult || !currentQuery) {
@@ -278,15 +262,6 @@ function HomeContent() {
     setSelectedId((prev) => (prev === id ? null : id));
   }, []);
 
-  // Derive the selected asset from search results for the detail modal.
-  useEffect(() => {
-    if (!selectedId || !searchResult) {
-      setSelectedAsset(null);
-      return;
-    }
-    setSelectedAsset(searchResult.results.find((a) => a.id === selectedId) ?? null);
-  }, [selectedId, searchResult]);
-
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     isResizing.current = true;
@@ -348,10 +323,13 @@ function HomeContent() {
 
   return (
     <div className="app-container">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <Navbar />
 
       {error && (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <svg className="error-icon" viewBox="0 0 20 20" fill="currentColor">
             <path
               fillRule="evenodd"
@@ -360,11 +338,20 @@ function HomeContent() {
             />
           </svg>
           <span>{error}</span>
+          <button
+            type="button"
+            className="error-dismiss"
+            onClick={() => setError(null)}
+            aria-label="Dismiss error"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
         </div>
       )}
 
       <main
         className="app-main"
+        id="main-content"
         style={{
           gridTemplateColumns: breakpoint === "desktop"
             ? `240px ${resultsPanelWidth}px 1fr`
@@ -429,9 +416,11 @@ function HomeContent() {
         </div>
       </main>
 
+      <Footer />
+
       <div className="mobile-nav" aria-label="Panels">
         <TabsRoot value={mobileTab} onValueChange={(v) => setMobileTab(v as MobileTab)}>
-          <TabsList variant="segment" className="border border-primary bg-[var(--bg-elevated)] rounded-xl p-1">
+          <TabsList variant="segment" className="border border-primary bg-[var(--bg-elevated)] p-1">
             <TabsTab value="map">
               <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4 shrink-0" aria-hidden="true">
                 <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />

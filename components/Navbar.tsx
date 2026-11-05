@@ -1,15 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Menu, X } from "lucide-react";
 import SmoothButton from "@/components/smoothui/smooth-button";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
-  { href: "https://github.com/Aviox8/lighthouse", label: "Source" },
 ];
 
 export default function Navbar() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <nav className="navbar" aria-label="Main navigation">
       <div className="navbar-inner">
@@ -17,14 +19,13 @@ export default function Navbar() {
           <span className="navbar-logo-mark">L</span>
           <span className="navbar-logo-text">Lighthouse</span>
         </Link>
+
         <div className="navbar-links">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               className="navbar-link"
-              target={link.href.startsWith("http") ? "_blank" : undefined}
-              rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
             >
               {link.label}
             </Link>
@@ -40,7 +41,45 @@ export default function Navbar() {
             </a>
           </SmoothButton>
         </div>
+
+        <button
+          type="button"
+          className="navbar-mobile-toggle"
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileMenuOpen}
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          {mobileMenuOpen ? (
+            <X size={20} strokeWidth={2} aria-hidden="true" />
+          ) : (
+            <Menu size={20} strokeWidth={2} aria-hidden="true" />
+          )}
+        </button>
       </div>
+
+      {mobileMenuOpen && (
+        <div className="navbar-mobile-menu">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="navbar-mobile-link"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <a
+            href="https://github.com/Aviox8/lighthouse"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="navbar-mobile-link"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            View source
+          </a>
+        </div>
+      )}
     </nav>
   );
 }

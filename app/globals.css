@@ -1749,7 +1749,7 @@ body {
   min-width: 16px !important;
   min-height: 16px !important;
   border: 2px solid var(--border-strong) !important;
-  border-radius: 50% !important;
+  border-radius: 0 !important;
   margin: 0 !important;
   cursor: pointer !important;
   transition: all var(--transition) !important;
@@ -4506,5 +4506,88 @@ body {
   font-weight: 650;
   color: var(--text-primary);
   letter-spacing: -0.02em;
+}
+
+/* =============================================================
+   Skip link
+   ============================================================= */
+
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 8px 16px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 10000;
+  transition: top 0.2s ease-in-out;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* =============================================================
+   Error banner dismiss
+   ============================================================= */
+
+.error-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.error-dismiss:hover {
+  color: var(--text-primary);
+}
+
+/* =============================================================
+   Filters remove button
+   ============================================================= */
+
+.filter-item-remove,
+.filter-item-clear {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 9px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+
+.filter-item-remove:hover,
+.filter-item-clear:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.filter-item-remove .mr-1,
+.filter-item-clear .mr-1 {
+  margin-right: 4px;
+}
+
+.filters-section-clear {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-secondary);
 }
 

@@ -13,6 +13,7 @@ interface ResultListProps {
   filterType: string | null;
   truncated: boolean | undefined;
   loading: boolean;
+  onLoadMore?: () => void;
 }
 
 export default function ResultList({
@@ -23,6 +24,7 @@ export default function ResultList({
   filterType,
   truncated,
   loading,
+  onLoadMore,
 }: ResultListProps) {
   const filtered = results.filter((r) => {
     if (filterType && r.type !== filterType) return false;
@@ -48,7 +50,7 @@ export default function ResultList({
         <svg className="results-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <MapPin size={24} />
         </svg>
-        <p>No matching assets.</p>
+        <h3 className="results-empty-title">No matching assets</h3>
         <p className="results-empty-hint">Try broadening the radius or removing type/operator filters.</p>
       </div>
     );
@@ -98,7 +100,7 @@ export default function ResultList({
           ))}
         </div>
 
-        {truncated && (
+        {truncated && onLoadMore && (
           <SmoothButton
             type="button"
             variant="soft"
@@ -106,6 +108,7 @@ export default function ResultList({
             size="sm"
             className="results-load-more"
             disabled={loading}
+            onClick={onLoadMore}
           >
             Show more results
           </SmoothButton>

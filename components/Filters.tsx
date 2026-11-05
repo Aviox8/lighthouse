@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
-import { SlidersHorizontal } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Checkbox, CheckboxTrigger } from "@/components/smoothui/checkbox";
+import { useCallback, useMemo, useState } from "react";
+import { SlidersHorizontal, X, RefreshCw } from "lucide-react";
+import {
+  Checkbox,
+  CheckboxTrigger,
+} from "@/components/smoothui/checkbox";
 import type { SearchResult } from "@/lib/types";
 
 interface FiltersProps {
@@ -21,6 +23,8 @@ export default function Filters({
   onOperatorChange,
   onTypeChange,
 }: FiltersProps) {
+  const [radiusValue, setRadiusValue] = useState<string>("");
+
   const types = useMemo(() => {
     if (!searchResult) return [];
     return Object.entries(searchResult.stats.types).sort(([, a], [, b]) => b - a);
@@ -36,6 +40,13 @@ export default function Filters({
     ? parsed.near.replace(/_/g, " ")
     : searchResult?.results[0]?.name || "—";
   const radiusLabel = parsed?.radius || 0;
+
+  const handleClearFilters = useCallback(() => {
+    onOperatorChange(null);
+    onTypeChange(null);
+  }, [onOperatorChange, onTypeChange]);
+
+  const hasFilters = Boolean(selectedOperator || selectedType);
 
   if (!searchResult) {
     return (
@@ -77,6 +88,17 @@ export default function Filters({
               </Checkbox>
             ))
           )}
+          {hasFilters && selectedType && (
+            <button
+              type="button"
+              className="filter-item filter-item-remove"
+              onClick={() => onTypeChange(null)}
+              title="Remove type filter"
+            >
+              <X size={14} strokeWidth={2} aria-hidden="true" />
+              <span>Remove</span>
+            </button>
+          )}
         </div>
       </section>
 
@@ -105,6 +127,17 @@ export default function Filters({
               </Checkbox>
             ))
           )}
+          {hasFilters && selectedOperator && (
+            <button
+              type="button"
+              className="filter-item filter-item-remove"
+              onClick={() => onOperatorChange(null)}
+              title="Remove operator filter"
+            >
+              <X size={14} strokeWidth={2} aria-hidden="true" />
+              <span>Remove</span>
+            </button>
+          )}
         </div>
       </section>
 
@@ -128,8 +161,9 @@ export default function Filters({
                     type="number"
                     min="0"
                     step="100"
-                    value={radiusLabel}
-                    readOnly
+                    value={radiusValue || radiusLabel}
+                    onChange={(e) => setRadiusValue(e.target.value)}
+                    placeholder={radiusLabel.toString()}
                   />
                   <span className="radius-unit">m</span>
                 </div>
@@ -138,6 +172,19 @@ export default function Filters({
           </div>
         </div>
       </section>
+
+      {hasFilters && (
+        <div className="filters-section filters-section-clear">
+          <button
+            type="button"
+            className="filter-item filter-item-clear"
+            onClick={handleClearFilters}
+          >
+            <RefreshCw size={14} strokeWidth={2} className="mr-1" aria-hidden="true" />
+            Clear filters
+          </button>
+        </div>
+      )}
 
       <div className="filters-footer">
         <p className="filters-footer-note">

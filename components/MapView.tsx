@@ -86,7 +86,7 @@ export default function MapView({
   return (
     <div className="map-container">
       <MapContainer
-        ref={(el) => { if (el) mapRef.current = el; }}
+        ref={(el) => { if (el) mapRef.current = el as unknown as L.Map; }}
         center={[20, 0]}
         zoom={2}
         scrollWheelZoom={false}

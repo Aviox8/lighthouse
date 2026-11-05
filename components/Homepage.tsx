@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from "react";
 import { Search } from "lucide-react";
-import Link from "next/link";
 import SmoothButton from "@/components/smoothui/smooth-button";
 import { Input } from "@/components/smoothui/input";
 import Navbar from "@/components/Navbar";
@@ -170,7 +169,7 @@ export default function Homepage({ onSearch, loading }: HomepageProps) {
         </div>
       </section>
 
-      <CTA />
+      <CTA onSearch={onSearch} loading={loading} />
 
       <Footer />
     </section>

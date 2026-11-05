@@ -1,10 +1,27 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { Search } from "lucide-react";
 import SmoothButton from "@/components/smoothui/smooth-button";
 import { Input } from "@/components/smoothui/input";
 
-export default function CTA() {
+interface CTAProps {
+  onSearch: (query: string) => void;
+  loading: boolean;
+}
+
+export default function CTA({ onSearch, loading }: CTAProps) {
+  const [query, setQuery] = useState("");
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const q = query.trim();
+      if (q) onSearch(q);
+    },
+    [query, onSearch],
+  );
+
   return (
     <section className="cta">
       <div className="cta-inner">
@@ -16,11 +33,14 @@ export default function CTA() {
           </p>
         </div>
         <div className="cta-action">
-          <form className="cta-form" onSubmit={(e) => e.preventDefault()}>
+          <form onSubmit={handleSubmit} className="cta-form">
             <div className="cta-input-wrapper">
               <Search className="cta-search-icon" size={16} strokeWidth={2} />
               <Input
                 placeholder="e.g. cell towers near:Berlin radius:5000"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                disabled={loading}
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -29,6 +49,7 @@ export default function CTA() {
                 variant="solid"
                 color="accent"
                 size="sm"
+                disabled={loading}
               >
                 Search
               </SmoothButton>

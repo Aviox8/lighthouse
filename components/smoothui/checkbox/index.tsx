@@ -10,7 +10,7 @@ import { forwardRef } from "react";
 const CheckboxRootC = CheckboxRoot as unknown as React.ComponentType<any>;
 const CheckboxTriggerC = CheckboxTriggerPrimitive as unknown as React.ComponentType<any>;
 
-const Checkbox = forwardRef<HTMLButtonElement, any>(({ className, children, ...props }) => (
+const Checkbox = forwardRef<HTMLSpanElement, any>(({ className, children, ...props }) => (
   <CheckboxRootC {...{ className: cn("inline-flex items-center justify-center", className), ...props } as any}>
     {children}
   </CheckboxRootC>

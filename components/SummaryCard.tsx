@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { AlertTriangle, RefreshCw, Link, FileText, Bot } from "lucide-react";
+import { AlertTriangle, RefreshCw, Link, ExternalLink, FileText, Bot } from "lucide-react";
 import ContentSkeleton from "@/components/smoothui/content-skeleton";
 import SmoothButton from "@/components/smoothui/smooth-button";
 import type { Summary } from "@/lib/types";
@@ -180,6 +180,7 @@ export default function SummaryCard({
               >
                 <Link size={12} strokeWidth={2} className="mr-1" />
                 {s.title}
+                <ExternalLink size={12} strokeWidth={2} className="ml-1 opacity-50" />
               </a>
             ))}
           </div>
