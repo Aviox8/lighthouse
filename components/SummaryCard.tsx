@@ -1,47 +1,24 @@
 "use client";
 
-import type { Summary, SummaryProvider } from "@/lib/types";
+import { useCallback } from "react";
+import { AlertTriangle, RefreshCw, Link, FileText, Bot } from "lucide-react";
+import ContentSkeleton from "@/components/smoothui/content-skeleton";
+import type { Summary } from "@/lib/types";
 
 interface SummaryCardProps {
   summary: Summary | null;
   loading: boolean;
   error: string | null;
-  onRetry?: () => void;
-  onFollowup?: (query: string) => void;
+  onRetry: () => void;
+  onFollowup: (query: string) => void;
 }
 
-const PROVIDER_LABELS: Record<SummaryProvider, string> = {
+const PROVIDER_LABELS: Record<string, string> = {
   openrouter: "OpenRouter",
   ollama: "Ollama",
   exa: "Exa",
   local: "Local",
 };
-
-function SparkleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.75}
-        d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3zM19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14zM5 14l.8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8L5 14z"
-      />
-    </svg>
-  );
-}
-
-function WarningIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.75}
-        d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-      />
-    </svg>
-  );
-}
 
 export default function SummaryCard({
   summary,
@@ -50,129 +27,153 @@ export default function SummaryCard({
   onRetry,
   onFollowup,
 }: SummaryCardProps) {
-  if (!loading && !error && !summary) {
+  const handleFollowup = useCallback(
+    (q: string) => {
+      onFollowup(q);
+    },
+    [onFollowup],
+  );
+
+  if (loading && !summary) {
+    return (
+      <div className="summary-card summary-card-loading" aria-busy="true">
+        <div className="summary-header">
+          <span className="summary-title">
+            <span className="summary-title-icon">
+              <FileText size={14} strokeWidth={2} />
+            </span>
+            Aggregate summary
+          </span>
+          <div className="summary-badges" />
+        </div>
+        <ContentSkeleton loading>
+          <div className="summary-headline">Generating summary…</div>
+          <p className="summary-overview">
+            The aggregate view is being compiled from OpenStreetMap results.
+          </p>
+          <ul className="summary-list">
+            <li>
+              <ContentSkeleton loading className="summary-skeleton-line w-[70%]" />
+            </li>
+            <li>
+              <ContentSkeleton loading className="summary-skeleton-line w-[55%]" />
+            </li>
+            <li>
+              <ContentSkeleton loading className="summary-skeleton-line w-[40%]" />
+            </li>
+          </ul>
+        </ContentSkeleton>
+      </div>
+    );
+  }
+
+  if (error && !summary) {
+    return (
+      <div className="summary-card" role="alert">
+        <div className="summary-error">
+          <svg className="summary-error-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <AlertTriangle size={16} strokeWidth={2} />
+          </svg>
+          <p>{error}</p>
+          <button type="button" className="summary-retry" onClick={onRetry}>
+            <RefreshCw size={14} strokeWidth={2} /> Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!summary) {
     return null;
   }
 
   return (
-    <section
-      className={`summary-card ${loading ? "summary-card-loading" : ""}`}
-      aria-live="polite"
-      aria-busy={loading}
-    >
+    <div className="summary-card">
       <div className="summary-header">
-        <div className="summary-title">
+        <span className="summary-title">
           <span className="summary-title-icon">
-            <SparkleIcon />
+            <Bot size={14} strokeWidth={2} />
           </span>
-          <span>Search summary</span>
-        </div>
-
-        {summary && (
-          <div className="summary-badges">
-            {summary.cached && <span className="summary-badge">Cached</span>}
-            {summary.fallback && summary.provider !== "local" && (
-              <span className="summary-badge">Fallback</span>
-            )}
-            {summary.degraded && (
-              <span className="summary-badge summary-badge-warning">
-                Limited data
-              </span>
-            )}
-            <span
-              className={`summary-badge summary-provider summary-provider-${summary.provider}`}
-              title={summary.model ? `Model: ${summary.model}` : undefined}
-            >
-              {PROVIDER_LABELS[summary.provider]}
+          Aggregate summary
+        </span>
+        <div className="summary-badges">
+          <span className={`summary-badge summary-provider summary-provider-${summary.provider}`}>
+            {PROVIDER_LABELS[summary.provider] || summary.provider}
+          </span>
+          {summary.fallback && (
+            <span className="summary-badge summary-badge-warning">
+              Fallback
             </span>
-          </div>
-        )}
+          )}
+          {summary.cached && (
+            <span className="summary-badge summary-provider-summary-provider-local">
+              Cached
+            </span>
+          )}
+        </div>
       </div>
 
-      {loading && (
-        <div className="summary-skeleton" aria-label="Generating summary">
-          <div className="summary-skeleton-line summary-skeleton-title" />
-          <div className="summary-skeleton-line" />
-          <div className="summary-skeleton-line summary-skeleton-short" />
-          <div className="summary-skeleton-line summary-skeleton-short" />
+      <h2 className="summary-headline">{summary.headline}</h2>
+      <p className="summary-overview">{summary.overview}</p>
+
+      {summary.observations.length > 0 && (
+        <ul className="summary-list">
+          {summary.observations.map((obs, i) => (
+            <li key={i}>{obs}</li>
+          ))}
+        </ul>
+      )}
+
+      {summary.caveats.length > 0 && (
+        <div className="summary-caveats">
+          <span className="summary-caveats-icon" aria-hidden="true">
+            <AlertTriangle size={14} strokeWidth={2} />
+          </span>
+          <ul>
+            {summary.caveats.map((c, i) => (
+              <li key={i}>{c}</li>
+            ))}
+          </ul>
         </div>
       )}
 
-      {!loading && error && (
-        <div className="summary-error">
-          <p>{error}</p>
-          {onRetry && (
-            <button type="button" className="summary-retry" onClick={onRetry}>
-              Try again
-            </button>
-          )}
+      {summary.followups.length > 0 && (
+        <div className="summary-followups">
+          <span className="summary-followups-label">Follow-up searches</span>
+          <div className="summary-followup-list">
+            {summary.followups.map((f, i) => (
+              <button
+                key={i}
+                type="button"
+                className="summary-followup"
+                onClick={() => handleFollowup(f)}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
-      {!loading && !error && summary && (
-        <div className="summary-body">
-          <h3 className="summary-headline">{summary.headline}</h3>
-          <p className="summary-overview">{summary.overview}</p>
-
-          {summary.observations.length > 0 && (
-            <ul className="summary-list">
-              {summary.observations.map((observation, index) => (
-                <li key={`${observation}-${index}`}>{observation}</li>
-              ))}
-            </ul>
-          )}
-
-          {summary.caveats.length > 0 && (
-            <div className="summary-caveats">
-              <span className="summary-caveats-icon">
-                <WarningIcon />
-              </span>
-              <ul>
-                {summary.caveats.map((caveat, index) => (
-                  <li key={`${caveat}-${index}`}>{caveat}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {onFollowup && summary.followups.length > 0 && (
-            <div className="summary-followups">
-              <span className="summary-followups-label">Try next</span>
-              <div className="summary-followup-list">
-                {summary.followups.map((followup, index) => (
-                  <button
-                    key={`${followup}-${index}`}
-                    type="button"
-                    className="summary-followup"
-                    onClick={() => onFollowup(followup)}
-                  >
-                    {followup}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {summary.sources.length > 0 && (
-            <div className="summary-sources">
-              <span className="summary-sources-label">Sources</span>
-              <div className="summary-source-list">
-                {summary.sources.slice(0, 4).map((source, index) => (
-                  <a
-                    key={`${source.url}-${index}`}
-                    href={source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="summary-source"
-                  >
-                    {source.title}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+      {summary.sources.length > 0 && (
+        <div className="summary-sources">
+          <span className="summary-sources-label">Sources</span>
+          <div className="summary-source-list">
+            {summary.sources.map((s, i) => (
+              <a
+                key={i}
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="summary-source"
+              >
+                <Link size={12} strokeWidth={2} className="mr-1" />
+                {s.title}
+              </a>
+            ))}
+          </div>
         </div>
       )}
-    </section>
+    </div>
   );
 }

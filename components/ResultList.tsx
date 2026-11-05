@@ -1,18 +1,8 @@
 "use client";
 
-import {
-  useCallback,
-  useDeferredValue,
-  useMemo,
-  useRef,
-  useEffect,
-  useState,
-} from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import ContentSkeleton from "@/components/smoothui/content-skeleton";
+import { Target, MapPin } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Asset } from "@/lib/types";
-
-const PAGE_SIZE = 100;
 
 interface ResultListProps {
   results: Asset[];
@@ -20,10 +10,8 @@ interface ResultListProps {
   onSelect: (id: string) => void;
   filterOperator: string | null;
   filterType: string | null;
-  truncated?: boolean;
-  warning?: string;
-  loading?: boolean;
-  hasSearched?: boolean;
+  truncated: boolean | undefined;
+  loading: boolean;
 }
 
 export default function ResultList({
@@ -32,320 +20,92 @@ export default function ResultList({
   onSelect,
   filterOperator,
   filterType,
-  truncated = false,
-  warning,
-  loading = false,
-  hasSearched = true,
+  truncated,
+  loading,
 }: ResultListProps) {
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const selectedRef = useRef<HTMLButtonElement>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const deferredSearchQuery = useDeferredValue(searchQuery);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-
-  // Reset pagination when the result set or filters change (adjusting
-  // state during render, per React docs — no effect needed).
-  const [resetSignature, setResetSignature] = useState({
-    results,
-    filterOperator,
-    filterType,
-    deferredSearchQuery,
+  const filtered = results.filter((r) => {
+    if (filterType && r.type !== filterType) return false;
+    if (filterOperator && r.operator !== filterOperator) return false;
+    return true;
   });
 
-  if (
-    resetSignature.results !== results ||
-    resetSignature.filterOperator !== filterOperator ||
-    resetSignature.filterType !== filterType ||
-    resetSignature.deferredSearchQuery !== deferredSearchQuery
-  ) {
-    setResetSignature({
-      results,
-      filterOperator,
-      filterType,
-      deferredSearchQuery,
-    });
-    setVisibleCount(PAGE_SIZE);
-  }
-
-  const filteredResults = useMemo(() => {
-    let filtered = results;
-
-    if (filterOperator) {
-      filtered = filtered.filter((r) => r.operator === filterOperator);
-    }
-
-    if (filterType) {
-      filtered = filtered.filter((r) => r.type === filterType);
-    }
-
-    if (deferredSearchQuery.trim()) {
-      const query = deferredSearchQuery.toLowerCase().trim();
-      filtered = filtered.filter((asset) => {
-        return (
-          asset.name.toLowerCase().includes(query) ||
-          asset.type.toLowerCase().includes(query) ||
-          (asset.operator && asset.operator.toLowerCase().includes(query)) ||
-          Object.values(asset.tags).some((value) =>
-            String(value).toLowerCase().includes(query)
-          )
-        );
-      });
-    }
-
-    return filtered;
-  }, [results, filterOperator, filterType, deferredSearchQuery]);
-
-  const visibleResults = useMemo(
-    () => filteredResults.slice(0, visibleCount),
-    [filteredResults, visibleCount],
-  );
-
-  useEffect(() => {
-    if (selectedRef.current && scrollAreaRef.current) {
-      // Get the viewport element from ScrollArea
-      const viewport = scrollAreaRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]",
-      ) as HTMLElement;
-      if (viewport) {
-        const element = selectedRef.current;
-        const containerRect = viewport.getBoundingClientRect();
-        const elementRect = element.getBoundingClientRect();
-
-        if (
-          elementRect.top < containerRect.top ||
-          elementRect.bottom > containerRect.bottom
-        ) {
-          element.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
-      }
-    }
-  }, [selectedId]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent, id: string, index: number) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        onSelect(id);
-      }
-
-      if (e.key === "ArrowDown" && index < visibleResults.length - 1) {
-        e.preventDefault();
-        const nextId = visibleResults[index + 1].id;
-        onSelect(nextId);
-      }
-
-      if (e.key === "ArrowUp" && index > 0) {
-        e.preventDefault();
-        const prevId = visibleResults[index - 1].id;
-        onSelect(prevId);
-      }
-    },
-    [visibleResults, onSelect],
-  );
-
-  if (results.length === 0) {
-    if (loading) {
-      return (
-        <div className="results-panel">
-          <div className="results-header">
-            <span className="results-count">Searching the map…</span>
-          </div>
-          <div className="results-list-content" aria-hidden="true">
-            {Array.from({ length: 8 }, (_, i) => (
-              <ContentSkeleton
-                key={i}
-                className="h-[68px] w-full mb-4 rounded-[12px]"
-              />
-            ))}
-          </div>
-        </div>
-      );
-    }
-
+  if (loading && results.length === 0) {
     return (
-      <div className="results-empty">
-        <svg
-          className="results-empty-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-          />
+      <div className="results-search-empty">
+        <svg className="results-search-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <Target size={24} />
         </svg>
-        {hasSearched ? (
-          <>
-            <p>No results</p>
-            <p className="results-empty-hint">
-              Nothing matched this search — try a different area or asset type
-            </p>
-          </>
-        ) : (
-          <>
-            <p>No search yet</p>
-            <p className="results-empty-hint">
-              Type a query above, like &ldquo;towers in dubai&rdquo; or &ldquo;airports near london&rdquo;
-            </p>
-          </>
-        )}
+        <h3 className="results-search-empty-title">Searching…</h3>
+        <p className="results-search-empty-hint">Results are loading from OpenStreetMap.</p>
       </div>
     );
   }
 
-  const displayCount = filteredResults.length;
-  const totalCount = results.length;
+  if (filtered.length === 0) {
+    return (
+      <div className="results-empty">
+        <svg className="results-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <MapPin size={24} />
+        </svg>
+        <p>No matching assets.</p>
+        <p className="results-empty-hint">Try broadening the radius or removing type/operator filters.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="results-panel">
-      {filteredResults.length > 0 && (
-        <div className="results-header">
-          <span className="results-count">
-            {displayCount === totalCount
-              ? `${displayCount.toLocaleString()} results`
-              : `${displayCount.toLocaleString()} of ${totalCount.toLocaleString()}`}
-          </span>
-          {visibleResults.length < displayCount && (
-            <span className="results-visible-count">
-              showing {visibleResults.length.toLocaleString()}
-            </span>
-          )}
-        </div>
-      )}
-
-      {(truncated || warning) && (
-        <div className="results-warning" role="status">
-          <svg
-            className="results-warning-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.75}
-              d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-            />
-          </svg>
-          <span>
-            {warning ||
-              'The result set reached the 5,000-feature limit; refine the query for complete coverage.'}
-          </span>
-        </div>
-      )}
-
-      <div className="results-search-container">
-        <div className="results-search-wrapper">
-          <svg
-            className="results-search-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <circle cx="11" cy="11" r="8" strokeWidth="2" />
-            <path d="m21 21-4.35-4.35" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search results..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="results-search-input"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="results-search-clear"
-              title="Clear search"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
-      </div>
-
-      <ScrollArea ref={scrollAreaRef} className="results-list-scroll">
-        <div className="results-list-content">
-          {filteredResults.length === 0 && searchQuery ? (
-            <div className="results-search-empty">
-              <svg
-                className="results-search-empty-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-              >
-                <circle cx="11" cy="11" r="8" strokeWidth="2" />
-                <path d="m21 21-4.35-4.35" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              <p className="results-search-empty-title">No matches found</p>
-              <p className="results-search-empty-hint">Try a different search term</p>
-            </div>
-          ) : (
-            <>
-              {visibleResults.map((asset, index) => (
+    <div className="results-list-scroll">
+      <div className="results-list-content">
+        <div className="results-list">
+          {filtered.map((asset) => (
             <button
               key={asset.id}
-              ref={selectedId === asset.id ? selectedRef : null}
-              className={`result-item ${selectedId === asset.id ? "selected" : ""}`}
+              type="button"
+              className={cn(
+                "result-item",
+                selectedId === asset.id ? "selected" : "",
+              )}
               onClick={() => onSelect(asset.id)}
-              onKeyDown={(e) => handleKeyDown(e, asset.id, index)}
-              tabIndex={0}
-              aria-label={`${asset.name}, ${asset.type}${asset.operator ? `, ${asset.operator}` : ""}`}
+              aria-pressed={selectedId === asset.id}
             >
               <div className="result-header">
                 <span className="result-name">{asset.name}</span>
                 <span className="result-type">{asset.type}</span>
               </div>
-
               {asset.operator && (
                 <div className="result-operator">
-                  <span className="result-operator-chip">op: {asset.operator}</span>
+                  <span className="result-operator-chip">{asset.operator}</span>
                 </div>
               )}
-
               <div className="result-coords">
-                <span className="coord">{asset.lat.toFixed(5)}</span>
-                <span className="separator">,</span>
-                <span className="coord">{asset.lon.toFixed(5)}</span>
+                {asset.lat.toFixed(4)}
+                <span className="separator">,&nbsp;</span>
+                {asset.lon.toFixed(4)}
               </div>
-
-              {Object.keys(asset.tags).length > 0 && (
-                <div className="result-tags">
-                  {Object.entries(asset.tags)
-                    .slice(0, 3)
-                    .map(([key, value]) => (
-                      <span key={key} className="tag">
-                        <span className="tag-key">{key}:</span>
-                        <span className="tag-value">{value}</span>
-                      </span>
-                    ))}
-                </div>
-              )}
+              <div className="result-tags">
+                {Object.entries(asset.tags).slice(0, 4).map(([key, value]) => (
+                  <span key={key} className="tag">
+                    <span className="tag-key">{key}</span>
+                    <span className="tag-value">{value}</span>
+                  </span>
+                ))}
+              </div>
             </button>
-              ))}
-              {visibleResults.length < filteredResults.length && (
-                <button
-                  type="button"
-                  className="results-load-more"
-                  onClick={() =>
-                    setVisibleCount((count) =>
-                      Math.min(count + PAGE_SIZE, filteredResults.length),
-                    )
-                  }
-                >
-                  Load {Math.min(PAGE_SIZE, filteredResults.length - visibleResults.length).toLocaleString()} more
-                </button>
-              )}
-            </>
-          )}
+          ))}
         </div>
-      </ScrollArea>
+
+        {truncated && (
+          <button
+            type="button"
+            className="results-load-more"
+            disabled={loading}
+          >
+            Show more results
+          </button>
+        )}
+      </div>
     </div>
   );
 }
+
+

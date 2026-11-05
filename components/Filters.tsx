@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
+import { useMemo } from "react";
+import { SlidersHorizontal } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { SearchResult } from "@/lib/types";
-import { ASSET_TYPE_MAP } from "@/lib/types";
 
 interface FiltersProps {
   searchResult: SearchResult | null;
@@ -11,7 +11,6 @@ interface FiltersProps {
   selectedType: string | null;
   onOperatorChange: (operator: string | null) => void;
   onTypeChange: (type: string | null) => void;
-  onRadiusSearch?: (near: string, radius: number, type: string | null) => void;
 }
 
 export default function Filters({
@@ -20,194 +19,139 @@ export default function Filters({
   selectedType,
   onOperatorChange,
   onTypeChange,
-  onRadiusSearch,
 }: FiltersProps) {
-  const [editRadius, setEditRadius] = useState<number | null>(null);
-
-  const footer = (
-    <div className="filters-footer">
-      <span className="filters-footer-note">Built on OpenStreetMap</span>
-      <nav className="filters-footer-nav" aria-label="About Lighthouse">
-        <Link href="/about">About</Link>
-        <Link href="/types">Types</Link>
-        <Link href="/dev">Developer</Link>
-        <Link href="/privacy">Privacy</Link>
-        <Link href="/terms">Terms</Link>
-      </nav>
-    </div>
-  );
-
-  const sortedOperators = useMemo(() => {
-    if (!searchResult?.stats.operators) return [];
-    return Object.entries(searchResult.stats.operators)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 20);
+  const types = useMemo(() => {
+    if (!searchResult) return [];
+    return Object.entries(searchResult.stats.types).sort(([, a], [, b]) => b - a);
   }, [searchResult]);
 
-  const sortedTypes = useMemo(() => {
-    if (!searchResult?.stats.types) return [];
-    return Object.entries(searchResult.stats.types)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 15);
+  const operators = useMemo(() => {
+    if (!searchResult) return [];
+    return Object.entries(searchResult.stats.operators).sort(([, a], [, b]) => b - a);
   }, [searchResult]);
+
+  const parsed = searchResult?.query;
+  const nearLabel = parsed?.near
+    ? parsed.near.replace(/_/g, " ")
+    : searchResult?.results[0]?.name || "—";
+  const radiusLabel = parsed?.radius || 0;
 
   if (!searchResult) {
     return (
-      <aside className="filters-panel">
+      <div className="filters-panel" aria-label="Filters">
         <div className="filters-empty">
-          <svg
-            className="filters-empty-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-            />
+          <svg className="filters-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <SlidersHorizontal size={24} />
           </svg>
-          <p>Run a search to see filters</p>
+          <p>Run a search to filter results.</p>
         </div>
-        {footer}
-      </aside>
+      </div>
     );
   }
 
   return (
-    <aside className="filters-panel">
-      <div className="filters-section">
+    <div className="filters-panel" aria-label="Filters">
+      <section className="filters-section">
         <div className="filters-header">
-          <span className="filters-title">Results</span>
-          <span className="filters-count">
-            {searchResult.stats.total.toLocaleString()}
-          </span>
+          <span className="filters-title">Asset types</span>
+          <span className="filters-count">{types.reduce((s, [, c]) => s + c, 0)}</span>
         </div>
-      </div>
-
-      {sortedTypes.length > 0 && (
-        <div className="filters-section">
-          <div className="filters-header">
-            <span className="filters-title">Asset Type</span>
-          </div>
-          <div className="filters-list">
-            {sortedTypes.map(([type, count]) => (
+        <div className="filters-list">
+          {types.length === 0 ? (
+            <div className="filter-item" role="button" aria-disabled="true">
+              <span className="filter-name">No types</span>
+              <span className="filter-count">0</span>
+            </div>
+          ) : (
+            types.map(([type, count]) => (
               <button
                 key={type}
-                className={`filter-item ${selectedType === type ? "active" : ""}`}
-                onClick={() =>
-                  onTypeChange(selectedType === type ? null : type)
-                }
+                type="button"
+                className={cn(
+                  "filter-item",
+                  selectedType === type ? "active" : "",
+                )}
+                onClick={() => onTypeChange(selectedType === type ? null : type)}
               >
-                <span className="filter-name">{ASSET_TYPE_MAP[type]?.label ?? type}</span>
-                <span className="filter-count">{count.toLocaleString()}</span>
+                <span className="filter-name">{type.replace(/_/g, " ")}</span>
+                <span className="filter-count">{count}</span>
               </button>
-            ))}
-          </div>
+            ))
+          )}
         </div>
-      )}
+      </section>
 
-      {sortedOperators.length > 0 && (
-        <div className="filters-section">
-          <div className="filters-header">
-            <span className="filters-title">Operator</span>
-          </div>
-          <div className="filters-list">
-            {sortedOperators.map(([operator, count]) => (
+      <section className="filters-section">
+        <div className="filters-header">
+          <span className="filters-title">Operators</span>
+          <span className="filters-count">{operators.reduce((s, [, c]) => s + c, 0)}</span>
+        </div>
+        <div className="filters-list">
+          {operators.length === 0 ? (
+            <div className="filter-item" role="button" aria-disabled="true">
+              <span className="filter-name">No operators</span>
+              <span className="filter-count">0</span>
+            </div>
+          ) : (
+            operators.map(([operator, count]) => (
               <button
                 key={operator}
-                className={`filter-item ${selectedOperator === operator ? "active" : ""}`}
-                onClick={() =>
-                  onOperatorChange(
-                    selectedOperator === operator ? null : operator,
-                  )
-                }
+                type="button"
+                className={cn(
+                  "filter-item",
+                  selectedOperator === operator ? "active" : "",
+                )}
+                onClick={() => onOperatorChange(selectedOperator === operator ? null : operator)}
               >
                 <span className="filter-name">{operator}</span>
-                <span className="filter-count">{count.toLocaleString()}</span>
+                <span className="filter-count">{count}</span>
               </button>
-            ))}
-          </div>
+            ))
+          )}
         </div>
-      )}
+      </section>
 
-      {searchResult.query && (
-        <div className="filters-section">
-          <div className="filters-header">
-            <span className="filters-title">Query</span>
-          </div>
-          <div className="query-debug">
-            {searchResult.query.type && (
+      <section className="filters-section">
+        <div className="filters-header">
+          <span className="filters-title">Radius search</span>
+          <span className="filters-count">{radiusLabel} m</span>
+        </div>
+        <div className="filters-list">
+          <div className="filter-item" style={{ cursor: "default" }}>
+            <div className="query-debug">
               <div className="query-param">
-                <span className="param-key">type</span>
-                <span className="param-value">{searchResult.query.type}</span>
+                <span className="param-key">Place</span>
+                <span className="param-value">{nearLabel}</span>
               </div>
-            )}
-            {searchResult.query.operator && (
-              <div className="query-param">
-                <span className="param-key">operator</span>
-                <span className="param-value">
-                  {searchResult.query.operator}
-                </span>
-              </div>
-            )}
-            {searchResult.query.region && (
-              <div className="query-param">
-                <span className="param-key">region</span>
-                <span className="param-value">{searchResult.query.region}</span>
-              </div>
-            )}
-            {searchResult.query.near && (
-              <div className="query-param">
-                <span className="param-key">near</span>
-                <span className="param-value">{searchResult.query.near}</span>
-              </div>
-            )}
-            {searchResult.query.near && (
               <div className="query-param radius-param">
-                <span className="param-key">radius</span>
+                <span className="param-key">Radius</span>
                 <div className="radius-input-wrapper">
                   <input
-                    type="number"
                     className="radius-input"
-                    value={editRadius ?? searchResult.query.radius}
-                    onChange={(e) =>
-                      setEditRadius(
-                        Math.max(
-                          1,
-                          Math.min(500, parseInt(e.target.value) || 50),
-                        ),
-                      )
-                    }
-                    min={1}
-                    max={500}
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={radiusLabel}
+                    readOnly
                   />
-                  <span className="radius-unit">km</span>
-                  {editRadius !== null &&
-                    editRadius !== searchResult.query.radius &&
-                    onRadiusSearch && (
-                      <button
-                        className="radius-apply"
-                        onClick={() => {
-                          onRadiusSearch(
-                            searchResult.query.near!,
-                            editRadius,
-                            searchResult.query.type,
-                          );
-                          setEditRadius(null);
-                        }}
-                      >
-                        Apply
-                      </button>
-                    )}
+                  <span className="radius-unit">m</span>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
-      )}
-      {footer}
-    </aside>
+      </section>
+
+      <div className="filters-footer">
+        <p className="filters-footer-note">
+          {searchResult.stats.total} result{searchResult.stats.total !== 1 ? "s" : ""}
+        </p>
+        <div className="filters-footer-nav">
+          <a href="https://github.com/Aviox8/lighthouse" target="_blank" rel="noopener noreferrer">Docs</a>
+        </div>
+      </div>
+    </div>
   );
 }
+
+

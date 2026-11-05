@@ -1,105 +1,172 @@
 "use client";
 
-import SearchBar from "@/components/SearchBar";
-import { EXAMPLE_QUERIES } from "@/lib/search-index";
-import { ASSET_TYPE_MAP } from "@/lib/types";
+import { useCallback, useState } from "react";
+import { Search } from "lucide-react";
 
-interface HomepageProps {
+const EXAMPLE_QUERIES = [
+  { label: "cell towers", query: "cell towers near:Berlin radius:5000" },
+  { label: "data centers", query: "data centers near:London radius:8000" },
+  { label: "power plants", query: "power plants near:Tokyo radius:10000" },
+  { label: "substations", query: "substations near:New York radius:6000" },
+  { label: "refineries", query: "refineries near:Houston radius:7000" },
+  { label: "ports", query: "ports near:Rotterdam radius:9000" },
+];
+
+const FACTS = [
+  { label: "Asset types", value: "200+" },
+  { label: "Data source", value: "OpenStreetMap" },
+  { label: "Query language", value: "type / near / radius" },
+];
+
+export interface HomepageProps {
   onSearch: (query: string) => void;
   loading: boolean;
 }
 
-const ASSET_TYPES = Object.keys(ASSET_TYPE_MAP).length;
-
 export default function Homepage({ onSearch, loading }: HomepageProps) {
-  const handleSearch = (q: string) => {
-    onSearch(q);
-  };
+  const [query, setQuery] = useState("");
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const q = query.trim();
+      if (q) onSearch(q);
+    },
+    [query, onSearch],
+  );
+
+  const handleExample = useCallback(
+    (q: string) => {
+      setQuery(q);
+      onSearch(q);
+    },
+    [onSearch],
+  );
 
   return (
-    <main className="home">
+    <section className="home" aria-label="Lighthouse">
       <div className="home-inner">
-        <section className="home-copy">
-          <p className="home-eyebrow">
+        <div className="home-copy">
+          <div className="home-eyebrow">
             <span className="home-dot" aria-hidden="true" />
-            OpenStreetMap · Natural language · Live
-          </p>
-
+            OSM · INSTRUMENT CONSOLE
+          </div>
           <h1 className="home-title">
-            Describe the infrastructure.
+            Map real-world infrastructure.
             <br />
-            <span className="home-accent">See it on the map.</span>
+            <span className="home-accent">From OpenStreetMap.</span>
           </h1>
-
           <p className="home-subtitle">
-            Lighthouse turns plain-language and structured queries into up to
-            5,000 live OpenStreetMap features — and summarizes only the
-            aggregate picture, never individual records.
+            Search telecom towers, data centers, power plants, refineries,
+            ports, and 200+ asset types across OpenStreetMap. Aggregate
+            summaries generated per search.
           </p>
 
           <div className="home-command">
-            <SearchBar onSearch={handleSearch} loading={loading} initialQuery="" />
+            <form onSubmit={handleSubmit} className="search-container">
+              <div className="search-input-wrapper">
+                <Search className="search-icon" size={16} strokeWidth={2} />
+                <input
+                  className="search-input"
+                  type="text"
+                  placeholder="e.g. cell towers near:Berlin radius:5000"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  disabled={loading}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <button
+                  type="submit"
+                  className="search-button"
+                  disabled={loading}
+                >
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4">
+                    <circle cx="10" cy="10" r="7" />
+                    <line x1="16" y1="16" x2="18" y2="18" />
+                  </svg>
+                  Search
+                </button>
+                {loading && (
+                  <div className="search-spinner" aria-hidden="true" />
+                )}
+              </div>
+              <div className="search-kbd" aria-hidden="true">
+                ⌘K
+              </div>
+            </form>
+
+            <div className="home-examples">
+              <span className="home-examples-label">Try:</span>
+              {EXAMPLE_QUERIES.map((example) => (
+                <button
+                  key={example.query}
+                  type="button"
+                  className="home-chip"
+                  onClick={() => handleExample(example.query)}
+                  disabled={loading}
+                  title={example.query}
+                >
+                  <code>{example.label}</code>
+                </button>
+              ))}
+            </div>
+
+            <p className="home-note">
+              Type <code>type:power_plant near:London radius:10000</code> to
+              scope by asset type, place, and radius.
+            </p>
+          </div>
+        </div>
+
+        <aside className="home-console" aria-label="Readout">
+          <div className="home-beacon" aria-hidden="true">
+            <svg
+              className="home-beacon-svg"
+              viewBox="0 0 440 440"
+              width="100%"
+              height="100%"
+              aria-hidden="true"
+            >
+              <defs>
+                <radialGradient id="homeBeaconGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.15" />
+                  <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+                </radialGradient>
+              </defs>
+              <circle className="home-ring" cx="220" cy="220" r="210" />
+              <path className="home-crosshair" d="M220 20 L220 420 M20 220 L420 220" />
+              <g className="home-sweep">
+                <path className="home-sweep-wedge" d="M220 220 L340 100 A120 120 0 0 1 220 100 Z" />
+                <path className="home-sweep-edge" d="M220 220 L340 100 A120 120 0 0 1 220 100 Z" fill="none" />
+              </g>
+              <g className="home-blips" aria-hidden="true">
+                <circle className="home-blip home-blip-2" cx="220" cy="220" r="46" />
+                <circle className="home-blip home-blip-3" cx="220" cy="220" r="72" />
+                <circle className="home-origin" cx="220" cy="220" r="6" />
+              </g>
+            </svg>
           </div>
 
-          <div className="home-examples">
-            <span className="home-examples-label">TRY</span>
-            {EXAMPLE_QUERIES.map((q) => (
-              <button
-                key={q}
-                type="button"
-                className="home-chip"
-                onClick={() => handleSearch(q)}
-                disabled={loading}
-              >
-                <code>{q}</code>
-              </button>
+          <div className="home-readout">
+            {FACTS.map((fact) => (
+              <div key={fact.label}>
+                <dt>{fact.label}</dt>
+                <dd>{fact.value}</dd>
+              </div>
             ))}
           </div>
 
-          <p className="home-note">
-            <kbd>/</kbd> to focus search · <code>type:airport</code> · <code>near:london</code> · <code>within:10km</code> · <code>operator:united</code>
-          </p>
-        </section>
-
-        <figure className="home-console" role="img" aria-label="Beacon radar with live OpenStreetMap readout">
-          <svg className="home-beacon" viewBox="0 0 440 440" role="presentation">
-            <circle cx="220" cy="220" r="200" className="home-ring" />
-            <circle cx="220" cy="220" r="150" className="home-ring" />
-            <circle cx="220" cy="220" r="100" className="home-ring" />
-            <circle cx="220" cy="220" r="50" className="home-ring" />
-            <line x1="20" y1="220" x2="420" y2="220" className="home-crosshair" />
-            <line x1="220" y1="20" x2="220" y2="420" className="home-crosshair" />
-            <g className="home-sweep">
-              <path d="M220 220 L220 20 A200 200 0 0 1 372 116 Z" className="home-sweep-wedge" />
-              <line x1="220" y1="220" x2="220" y2="20" className="home-sweep-edge" />
-            </g>
-            <circle cx="150" cy="150" r="4.5" className="home-blip home-blip-1" />
-            <circle cx="290" cy="180" r="4.5" className="home-blip home-blip-2" />
-            <circle cx="250" cy="300" r="4.5" className="home-blip home-blip-3" />
-            <circle cx="220" cy="220" r="5" className="home-origin" />
-          </svg>
-
-          <dl className="home-readout">
+          <footer className="home-footer">
             <div>
-              <dt>asset types</dt>
-              <dd>{ASSET_TYPES}</dd>
+              Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>
             </div>
             <div>
-              <dt>feature cap</dt>
-              <dd>5,000</dd>
+              <a href="https://github.com/Aviox8/lighthouse" target="_blank" rel="noopener noreferrer">Source</a>
             </div>
-            <div>
-              <dt>source</dt>
-              <dd>OSM / Overpass</dd>
-            </div>
-          </dl>
-        </figure>
+          </footer>
+        </aside>
       </div>
-
-      <footer className="home-footer">
-        <span>OpenStreetMap data © contributors · Map data under ODbL</span>
-        <span>MIT · Based on Sightline by ni5arga</span>
-      </footer>
-    </main>
+    </section>
   );
 }
