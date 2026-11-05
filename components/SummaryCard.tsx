@@ -3,7 +3,15 @@
 import { useCallback } from "react";
 import { AlertTriangle, RefreshCw, Link, FileText, Bot } from "lucide-react";
 import ContentSkeleton from "@/components/smoothui/content-skeleton";
+import SmoothButton from "@/components/smoothui/smooth-button";
 import type { Summary } from "@/lib/types";
+
+const PROVIDER_LABELS: Record<string, string> = {
+  openrouter: "OpenRouter",
+  ollama: "Ollama",
+  exa: "Exa",
+  local: "Local",
+};
 
 interface SummaryCardProps {
   summary: Summary | null;
@@ -12,13 +20,6 @@ interface SummaryCardProps {
   onRetry: () => void;
   onFollowup: (query: string) => void;
 }
-
-const PROVIDER_LABELS: Record<string, string> = {
-  openrouter: "OpenRouter",
-  ollama: "Ollama",
-  exa: "Exa",
-  local: "Local",
-};
 
 export default function SummaryCard({
   summary,
@@ -75,9 +76,16 @@ export default function SummaryCard({
             <AlertTriangle size={16} strokeWidth={2} />
           </svg>
           <p>{error}</p>
-          <button type="button" className="summary-retry" onClick={onRetry}>
-            <RefreshCw size={14} strokeWidth={2} /> Retry
-          </button>
+          <SmoothButton
+            type="button"
+            variant="soft"
+            color="neutral"
+            size="xs"
+            onClick={onRetry}
+          >
+            <RefreshCw size={14} strokeWidth={2} className="mr-1" />
+            Retry
+          </SmoothButton>
         </div>
       </div>
     );
@@ -118,8 +126,8 @@ export default function SummaryCard({
 
       {summary.observations.length > 0 && (
         <ul className="summary-list">
-          {summary.observations.map((obs, i) => (
-            <li key={i}>{obs}</li>
+          {summary.observations.map((obs: string, _i: number) => (
+            <li key={_i}>{obs}</li>
           ))}
         </ul>
       )}
@@ -130,8 +138,8 @@ export default function SummaryCard({
             <AlertTriangle size={14} strokeWidth={2} />
           </span>
           <ul>
-            {summary.caveats.map((c, i) => (
-              <li key={i}>{c}</li>
+            {summary.caveats.map((c: string, _i: number) => (
+              <li key={_i}>{c}</li>
             ))}
           </ul>
         </div>
@@ -141,15 +149,18 @@ export default function SummaryCard({
         <div className="summary-followups">
           <span className="summary-followups-label">Follow-up searches</span>
           <div className="summary-followup-list">
-            {summary.followups.map((f, i) => (
-              <button
-                key={i}
+            {summary.followups.map((f: string, _i: number) => (
+              <SmoothButton
+                key={_i}
                 type="button"
+                variant="ghost"
+                color="neutral"
+                size="xs"
                 className="summary-followup"
                 onClick={() => handleFollowup(f)}
               >
                 {f}
-              </button>
+              </SmoothButton>
             ))}
           </div>
         </div>
@@ -159,9 +170,9 @@ export default function SummaryCard({
         <div className="summary-sources">
           <span className="summary-sources-label">Sources</span>
           <div className="summary-source-list">
-            {summary.sources.map((s, i) => (
+            {summary.sources.map((s: { title: string; url: string }, _i: number) => (
               <a
-                key={i}
+                key={_i}
                 href={s.url}
                 target="_blank"
                 rel="noopener noreferrer"

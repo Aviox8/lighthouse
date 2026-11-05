@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { Search } from "lucide-react";
+import SmoothButton from "@/components/smoothui/smooth-button";
+import { Input } from "@/components/smoothui/input";
 
 const EXAMPLE_QUERIES = [
   { label: "cell towers", query: "cell towers near:Berlin radius:5000" },
@@ -66,9 +68,7 @@ export default function Homepage({ onSearch, loading }: HomepageProps) {
             <form onSubmit={handleSubmit} className="search-container">
               <div className="search-input-wrapper">
                 <Search className="search-icon" size={16} strokeWidth={2} />
-                <input
-                  className="search-input"
-                  type="text"
+                <Input
                   placeholder="e.g. cell towers near:Berlin radius:5000"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -76,9 +76,11 @@ export default function Homepage({ onSearch, loading }: HomepageProps) {
                   autoComplete="off"
                   spellCheck={false}
                 />
-                <button
+                <SmoothButton
                   type="submit"
-                  className="search-button"
+                  variant="solid"
+                  color="accent"
+                  size="sm"
                   disabled={loading}
                 >
                   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4">
@@ -86,7 +88,7 @@ export default function Homepage({ onSearch, loading }: HomepageProps) {
                     <line x1="16" y1="16" x2="18" y2="18" />
                   </svg>
                   Search
-                </button>
+                </SmoothButton>
                 {loading && (
                   <div className="search-spinner" aria-hidden="true" />
                 )}
@@ -130,8 +132,8 @@ export default function Homepage({ onSearch, loading }: HomepageProps) {
             >
               <defs>
                 <radialGradient id="homeBeaconGlow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.15" />
-                  <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#fff" stopOpacity="0.1" />
+                  <stop offset="100%" stopColor="#fff" stopOpacity="0" />
                 </radialGradient>
               </defs>
               <circle className="home-ring" cx="220" cy="220" r="210" />

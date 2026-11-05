@@ -10,11 +10,13 @@ import { TabsRoot, TabsList, TabsTab, TabsIndicator } from "@/components/smoothu
 import Filters from "@/components/Filters";
 import ResultList from "@/components/ResultList";
 import SummaryCard from "@/components/SummaryCard";
+import AssetInfoModal from "@/components/AssetInfoModal";
 import type {
   SearchResult,
   SearchError,
   SearchStats,
   Summary,
+  Asset,
 } from "@/lib/types";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
@@ -87,6 +89,8 @@ function HomeContent() {
   const [summaryRetryKey, setSummaryRetryKey] = useState(0);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const [filterOperator, setFilterOperator] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string | null>(null);
 
@@ -276,6 +280,15 @@ function HomeContent() {
     setSelectedId((prev) => (prev === id ? null : id));
   }, []);
 
+  // Derive the selected asset from search results for the detail modal.
+  useEffect(() => {
+    if (!selectedId || !searchResult) {
+      setSelectedAsset(null);
+      return;
+    }
+    setSelectedAsset(searchResult.results.find((a) => a.id === selectedId) ?? null);
+  }, [selectedId, searchResult]);
+
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     isResizing.current = true;
@@ -371,21 +384,23 @@ function HomeContent() {
               }}
               disabled={loading}
             />
-            <button
-              type="button"
-              className="search-button"
-              disabled={loading}
-              onClick={() => {
-                const q = sanitizeQuery(initialQuery);
-                if (q) handleSearch(q);
-              }}
-            >
-              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4">
-                <circle cx="10" cy="10" r="7" />
-                <line x1="16" y1="16" x2="18" y2="18" />
-              </svg>
-              Search
-            </button>
+                <SmoothButton
+                  type="button"
+                  variant="solid"
+                  color="accent"
+                  size="sm"
+                  disabled={loading}
+                  onClick={() => {
+                    const q = sanitizeQuery(initialQuery);
+                    if (q) handleSearch(q);
+                  }}
+                >
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4">
+                    <circle cx="10" cy="10" r="7" />
+                    <line x1="16" y1="16" x2="18" y2="18" />
+                  </svg>
+                  Search
+                </SmoothButton>
           </div>
 
           <div className="header-meta">

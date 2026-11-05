@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Checkbox, CheckboxTrigger } from "@/components/smoothui/checkbox";
 import type { SearchResult } from "@/lib/types";
 
 interface FiltersProps {
@@ -64,18 +65,16 @@ export default function Filters({
             </div>
           ) : (
             types.map(([type, count]) => (
-              <button
+              <Checkbox
                 key={type}
-                type="button"
-                className={cn(
-                  "filter-item",
-                  selectedType === type ? "active" : "",
-                )}
-                onClick={() => onTypeChange(selectedType === type ? null : type)}
+                checked={selectedType === type}
+                onCheckedChange={(checked: boolean) => onTypeChange(checked ? type : null)}
               >
-                <span className="filter-name">{type.replace(/_/g, " ")}</span>
-                <span className="filter-count">{count}</span>
-              </button>
+                <CheckboxTrigger className="filter-item">
+                  <span className="filter-name">{type.replace(/_/g, " ")}</span>
+                  <span className="filter-count">{count}</span>
+                </CheckboxTrigger>
+              </Checkbox>
             ))
           )}
         </div>
@@ -94,18 +93,16 @@ export default function Filters({
             </div>
           ) : (
             operators.map(([operator, count]) => (
-              <button
+              <Checkbox
                 key={operator}
-                type="button"
-                className={cn(
-                  "filter-item",
-                  selectedOperator === operator ? "active" : "",
-                )}
-                onClick={() => onOperatorChange(selectedOperator === operator ? null : operator)}
+                checked={selectedOperator === operator}
+                onCheckedChange={(checked: boolean) => onOperatorChange(checked ? operator : null)}
               >
-                <span className="filter-name">{operator}</span>
-                <span className="filter-count">{count}</span>
-              </button>
+                <CheckboxTrigger className="filter-item">
+                  <span className="filter-name">{operator}</span>
+                  <span className="filter-count">{count}</span>
+                </CheckboxTrigger>
+              </Checkbox>
             ))
           )}
         </div>
@@ -153,5 +150,3 @@ export default function Filters({
     </div>
   );
 }
-
-

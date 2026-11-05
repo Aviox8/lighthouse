@@ -2,6 +2,7 @@
 
 import { Target, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
+import SmoothButton from "@/components/smoothui/smooth-button";
 import type { Asset } from "@/lib/types";
 
 interface ResultListProps {
@@ -58,9 +59,12 @@ export default function ResultList({
       <div className="results-list-content">
         <div className="results-list">
           {filtered.map((asset) => (
-            <button
+            <SmoothButton
               key={asset.id}
               type="button"
+              variant="ghost"
+              color="neutral"
+              size="sm"
               className={cn(
                 "result-item",
                 selectedId === asset.id ? "selected" : "",
@@ -90,22 +94,23 @@ export default function ResultList({
                   </span>
                 ))}
               </div>
-            </button>
+            </SmoothButton>
           ))}
         </div>
 
         {truncated && (
-          <button
+          <SmoothButton
             type="button"
+            variant="soft"
+            color="neutral"
+            size="sm"
             className="results-load-more"
             disabled={loading}
           >
             Show more results
-          </button>
+          </SmoothButton>
         )}
       </div>
     </div>
   );
 }
-
-
