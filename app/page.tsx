@@ -3,6 +3,10 @@
 import { useState, useCallback, useEffect, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { ChevronLeft } from "lucide-react";
+import Homepage from "@/components/Homepage";
+import SmoothButton from "@/components/smoothui/smooth-button";
+import { TabsRoot, TabsList, TabsTab, TabsIndicator } from "@/components/smoothui/tabs";
 import SearchBar from "@/components/SearchBar";
 import ShareButton from "@/components/ShareButton";
 import Filters from "@/components/Filters";
@@ -197,9 +201,23 @@ function HomeContent() {
         handleSearch(sanitized, false);
       }
     }
-    // No query in the URL: show the empty state. A search only runs when the
+    // No query in the URL: show the homepage. A search only runs when the
     // user submits one or opens a shared "?q=" link.
   }, [searchParams, handleSearch]);
+
+  const handleClear = useCallback(() => {
+    setCurrentQuery("");
+    setInitialQuery("");
+    setHasSearched(false);
+    setSearchResult(null);
+    setSelectedId(null);
+    setError(null);
+    setSummary(null);
+    setSummaryError(null);
+    setLoading(false);
+    lastUrlQuery.current = null;
+    router.replace(window.location.pathname, { scroll: false });
+  }, [router]);
 
   // Generate an aggregate-only summary whenever a search succeeds.
   useEffect(() => {
@@ -340,6 +358,11 @@ function HomeContent() {
     };
   }, []);
 
+  const inWorkbench = hasSearched || Boolean(currentQuery);
+  if (!inWorkbench) {
+    return <Homepage onSearch={handleSearch} loading={loading} />;
+  }
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -369,6 +392,18 @@ function HomeContent() {
           />
 
           <div className="header-meta">
+            <SmoothButton
+              type="button"
+              variant="soft"
+              color="neutral"
+              size="sm"
+              className="header-new-search"
+              onClick={handleClear}
+              disabled={loading}
+              prefix={<ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />}
+            >
+              <span className="header-new-search-text">New search</span>
+            </SmoothButton>
             <ShareButton query={currentQuery} disabled={loading} />
             <a
               href="https://github.com/Aviox8/lighthouse"
@@ -485,55 +520,28 @@ function HomeContent() {
         </div>
       </main>
 
-      <nav className="mobile-nav" aria-label="Panels">
-        <button
-          className={`mobile-nav-btn ${mobileTab === "map" ? "active" : ""}`}
-          onClick={() => setMobileTab("map")}
-          aria-current={mobileTab === "map" ? "page" : undefined}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-          </svg>
-          <span>Map</span>
-        </button>
-        <button
-          className={`mobile-nav-btn ${mobileTab === "results" ? "active" : ""}`}
-          onClick={() => setMobileTab("results")}
-          aria-current={mobileTab === "results" ? "page" : undefined}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-          <span>
-            Results{searchResult ? ` (${searchResult.stats.total})` : ""}
-          </span>
-        </button>
-        <button
-          className={`mobile-nav-btn ${mobileTab === "filters" ? "active" : ""}`}
-          onClick={() => setMobileTab("filters")}
-          aria-current={mobileTab === "filters" ? "page" : undefined}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          <span>Filters</span>
-        </button>
-      </nav>
+      <div className="mobile-nav" aria-label="Panels">
+        <TabsRoot value={mobileTab} onValueChange={(v) => setMobileTab(v as MobileTab)}>
+          <TabsList variant="segment" className="border border-primary bg-[var(--bg-elevated)] rounded-xl p-1">
+            <TabsTab value="map">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4 shrink-0" aria-hidden="true">
+                <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              Map
+            </TabsTab>
+            <TabsTab value="results">
+              Results{searchResult ? ` (${searchResult.stats.total})` : ""}
+            </TabsTab>
+            <TabsTab value="filters">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="size-4 shrink-0" aria-hidden="true">
+                <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filters
+            </TabsTab>
+            <TabsIndicator />
+          </TabsList>
+        </TabsRoot>
+      </div>
     </div>
   );
 }

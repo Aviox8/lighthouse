@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ContentSkeleton from "@/components/smoothui/content-skeleton";
 import type { Asset } from "@/lib/types";
 
 const PAGE_SIZE = 100;
@@ -149,13 +150,12 @@ export default function ResultList({
           <div className="results-header">
             <span className="results-count">Searching the map…</span>
           </div>
-          <div className="results-list-content results-skeleton" aria-hidden="true">
+          <div className="results-list-content" aria-hidden="true">
             {Array.from({ length: 8 }, (_, i) => (
-              <div key={i} className="results-skeleton-item">
-                <div className="skel skel-title" />
-                <div className="skel skel-sub" />
-                <div className="skel skel-tags" />
-              </div>
+              <ContentSkeleton
+                key={i}
+                className="h-[68px] w-full mb-4 rounded-[12px]"
+              />
             ))}
           </div>
         </div>

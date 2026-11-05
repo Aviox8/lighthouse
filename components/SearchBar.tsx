@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import SmoothButton from "@/components/smoothui/smooth-button";
+import { ArrowRight } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getPlaceSuggestions } from "@/lib/geo";
 import type { SearchableAsset, Keyword } from "@/lib/search-index";
@@ -455,20 +457,17 @@ export default function SearchBar({
           />
           {loading && <div className="search-spinner" />}
           {!query && !loading && <span className="search-kbd">/</span>}
-          <button
+          <SmoothButton
             type="submit"
-            className="search-button"
+            variant="solid"
+            color="amber"
+            size="sm"
             disabled={loading || !query.trim()}
-            title="Search"
+            loading={loading}
+            aria-label="Search"
           >
-            <svg viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
+            <ArrowRight size={14} strokeWidth={2} />
+          </SmoothButton>
         </div>
       </form>
 
