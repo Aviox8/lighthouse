@@ -3,14 +3,12 @@
 import { useState, useCallback, useEffect, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { ChevronLeft } from "lucide-react";
 import Homepage from "@/components/Homepage";
-import SmoothButton from "@/components/smoothui/smooth-button";
+import Navbar from "@/components/Navbar";
 import { TabsRoot, TabsList, TabsTab, TabsIndicator } from "@/components/smoothui/tabs";
 import Filters from "@/components/Filters";
 import ResultList from "@/components/ResultList";
 import SummaryCard from "@/components/SummaryCard";
-import AssetInfoModal from "@/components/AssetInfoModal";
 import type {
   SearchResult,
   SearchError,
@@ -350,96 +348,7 @@ function HomeContent() {
 
   return (
     <div className="app-container">
-      <header className="app-header">
-        <div className="header-content">
-          <div className="logo">
-            <svg
-              className="logo-mark"
-              viewBox="0 0 64 64"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <g stroke="currentColor" strokeWidth="5" strokeLinecap="round" opacity="0.9">
-                <line x1="32" y1="4" x2="32" y2="10" />
-                <line x1="13" y1="13" x2="17.5" y2="17.5" />
-                <line x1="51" y1="13" x2="46.5" y2="17.5" />
-              </g>
-              <path d="M26.5 22.5 L24.5 48 L39.5 48 L37.5 22.5 Z" fill="currentColor" opacity="0.9" />
-              <rect x="25.5" y="14.5" width="13" height="6.5" rx="1.5" fill="var(--accent)" stroke="none" />
-            </svg>
-            <span className="logo-text">Lighthouse</span>
-          </div>
-
-          <div className="search-container" style={{ flex: 1, maxWidth: 620 }}>
-            <input
-              className="search-input"
-              type="text"
-              placeholder="Search OpenStreetMap…"
-              value={initialQuery}
-              onChange={(e) => setInitialQuery(e.target.value)}
-              onSubmit={(e) => {
-                e.preventDefault();
-                const q = sanitizeQuery(e.currentTarget.value);
-                if (q) handleSearch(q);
-              }}
-              disabled={loading}
-            />
-                <SmoothButton
-                  type="button"
-                  variant="solid"
-                  color="accent"
-                  size="sm"
-                  disabled={loading}
-                  onClick={() => {
-                    const q = sanitizeQuery(initialQuery);
-                    if (q) handleSearch(q);
-                  }}
-                >
-                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4">
-                    <circle cx="10" cy="10" r="7" />
-                    <line x1="16" y1="16" x2="18" y2="18" />
-                  </svg>
-                  Search
-                </SmoothButton>
-          </div>
-
-          <div className="header-meta">
-            <SmoothButton
-              type="button"
-              variant="soft"
-              color="neutral"
-              size="sm"
-              className="header-new-search"
-              onClick={handleClear}
-              disabled={loading}
-              prefix={<ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />}
-            >
-              <span className="header-new-search-text">New search</span>
-            </SmoothButton>
-            <a
-              href="https://github.com/Aviox8/lighthouse"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="header-link"
-              aria-label="Source code and documentation on GitHub"
-            >
-              <svg
-                className="header-link-icon"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  fill="currentColor"
-                  d="M12 .5A12 12 0 0 0 0 12.67c0 5.36 3.44 9.9 8.21 11.5.6.12.82-.27.82-.6v-2.2c-3.34.75-4.05-1.42-4.05-1.42-.55-1.43-1.34-1.81-1.34-1.81-1.09-.77.08-.75.08-.75 1.2.09 1.84 1.26 1.84 1.26 1.07 1.88 2.82 1.34 3.51 1.02.11-.8.42-1.34.77-1.65-2.67-.31-5.47-1.38-5.47-6.15 0-1.36.47-2.47 1.25-3.34-.13-.31-.54-1.57.12-3.25 0 0 1.01-.33 3.32 1.27a11.18 11.18 0 0 1 6.05 0c2.31-1.6 3.32-1.27 3.32-1.27.66 1.68.25 2.94.12 3.25.78.87 1.25 1.98 1.25 3.34 0 4.78-2.8 5.83-5.48 6.14.43.38.82 1.13.83 2.28v3.38c0 .34.22.74.83.61A12.03 12.03 0 0 0 24 12.67 12 12 0 0 0 12 .5Z"
-                />
-              </svg>
-              <span className="header-link-text">
-                Source Code & Documentation
-              </span>
-            </a>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {error && (
         <div className="error-banner">
