@@ -211,7 +211,7 @@ function SmoothButton({
       ...props,
       className: cn(classes, child.props.className),
       "data-variant": variantName,
-      ref: mergeRefs(ref, child.props.ref, localRef),
+      ref: child.props.ref,
     } as never);
   }
 

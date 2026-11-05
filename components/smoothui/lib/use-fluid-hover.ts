@@ -273,7 +273,7 @@ export const useFluidHover = (
   }, [runMeasurement]);
 
   const scheduleMeasurement = useCallback(
-    (attemptsLeft: number) => {
+    function scheduleMeasurement(attemptsLeft: number) {
       if (remeasureRafIdRef.current !== null) {
         cancelAnimationFrame(remeasureRafIdRef.current);
       }
