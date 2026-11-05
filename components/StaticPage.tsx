@@ -117,7 +117,14 @@ function transformHeadings(
       }
       usedIds.add(id);
       headings.push({ id, text });
-      return cloneElement(child, { id });
+      // The predicate narrows `child` to a children-only props type, which
+      // makes `cloneElement(child, { id })` an invalid Partial. Cast to a
+      // writable props record — the h2's own props are preserved by
+      // cloneElement's merge.
+      return cloneElement(
+        child as unknown as ReactElement<Record<string, unknown>>,
+        { id },
+      );
     }
     return child;
   });
