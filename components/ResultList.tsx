@@ -1,6 +1,6 @@
 "use client";
 
-import { Target, MapPin } from "lucide-react";
+import { AlertTriangle, Target, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SmoothButton from "@/components/smoothui/smooth-button";
 import type { Asset } from "@/lib/types";
@@ -99,6 +99,22 @@ export default function ResultList({
             </SmoothButton>
           ))}
         </div>
+
+        {truncated && !onLoadMore && (
+          <div className="results-warning" role="note">
+            <AlertTriangle
+              className="results-warning-icon"
+              size={14}
+              strokeWidth={2}
+              aria-hidden="true"
+            />
+            <span>
+              Results are capped at 5,000 features — this list may be
+              incomplete. Narrow the query (smaller radius, tighter type or
+              operator) for full coverage.
+            </span>
+          </div>
+        )}
 
         {truncated && onLoadMore && (
           <SmoothButton

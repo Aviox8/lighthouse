@@ -258,6 +258,16 @@ function HomeContent() {
     [handleSearch],
   );
 
+  const handleRadiusCommit = useCallback(
+    (radiusKm: number) => {
+      const stripped = currentQuery
+        .replace(/\bradius:\s*\d+(?:\.\d+)?/i, "")
+        .trim();
+      handleSearch(`${stripped} radius:${radiusKm}`);
+    },
+    [currentQuery, handleSearch],
+  );
+
   const handleSelect = useCallback((id: string) => {
     setSelectedId((prev) => (prev === id ? null : id));
   }, []);
@@ -365,6 +375,7 @@ function HomeContent() {
             selectedType={filterType}
             onOperatorChange={setFilterOperator}
             onTypeChange={setFilterType}
+            onRadiusCommit={handleRadiusCommit}
           />
         </div>
 

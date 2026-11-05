@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { SlidersHorizontal, X, RefreshCw } from "lucide-react";
+import Link from "next/link";
 import {
   Checkbox,
   CheckboxTrigger,
@@ -14,6 +15,8 @@ interface FiltersProps {
   selectedType: string | null;
   onOperatorChange: (operator: string | null) => void;
   onTypeChange: (type: string | null) => void;
+  /** Commit a new radius (km) — re-runs the search with an updated radius token. */
+  onRadiusCommit?: (radiusKm: number) => void;
 }
 
 export default function Filters({
@@ -22,6 +25,7 @@ export default function Filters({
   selectedType,
   onOperatorChange,
   onTypeChange,
+  onRadiusCommit,
 }: FiltersProps) {
   const [radiusValue, setRadiusValue] = useState<string>("");
 
@@ -45,6 +49,21 @@ export default function Filters({
     onOperatorChange(null);
     onTypeChange(null);
   }, [onOperatorChange, onTypeChange]);
+
+  // Radius commits happen on Enter or blur — clear the draft if invalid.
+  const commitRadius = useCallback(() => {
+    const next = Number(radiusValue);
+    if (
+      onRadiusCommit &&
+      Number.isFinite(next) &&
+      next >= 1 &&
+      next <= 500 &&
+      next !== radiusLabel
+    ) {
+      onRadiusCommit(next);
+    }
+    setRadiusValue("");
+  }, [onRadiusCommit, radiusValue, radiusLabel]);
 
   const hasFilters = Boolean(selectedOperator || selectedType);
 
@@ -144,7 +163,7 @@ export default function Filters({
       <section className="filters-section">
         <div className="filters-header">
           <span className="filters-title">Radius search</span>
-          <span className="filters-count">{radiusLabel} m</span>
+          <span className="filters-count">{radiusLabel} km</span>
         </div>
         <div className="filters-list">
           <div className="filter-item" style={{ cursor: "default" }}>
@@ -159,13 +178,22 @@ export default function Filters({
                   <input
                     className="radius-input"
                     type="number"
-                    min="0"
-                    step="100"
+                    min="1"
+                    max="500"
+                    step="1"
                     value={radiusValue || radiusLabel}
                     onChange={(e) => setRadiusValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        commitRadius();
+                      }
+                    }}
+                    onBlur={commitRadius}
                     placeholder={radiusLabel.toString()}
+                    aria-label="Radius in kilometres (1 to 500)"
+                    title="Radius is in kilometres — Enter commits a new radius token to the query"
                   />
-                  <span className="radius-unit">m</span>
+                  <span className="radius-unit">km</span>
                 </div>
               </div>
             </div>
@@ -191,7 +219,8 @@ export default function Filters({
           {searchResult.stats.total} result{searchResult.stats.total !== 1 ? "s" : ""}
         </p>
         <div className="filters-footer-nav">
-          <a href="https://github.com/Aviox8/lighthouse" target="_blank" rel="noopener noreferrer">Docs</a>
+          <Link href="/docs">Docs</Link>
+          <Link href="/types">Types</Link>
         </div>
       </div>
     </div>

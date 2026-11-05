@@ -114,7 +114,7 @@ export default function SummaryCard({
             </span>
           )}
           {summary.cached && (
-            <span className="summary-badge summary-provider-summary-provider-local">
+            <span className="summary-badge summary-badge-cached">
               Cached
             </span>
           )}
