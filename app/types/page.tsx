@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import StaticPage from "@/components/StaticPage";
-import TypesCatalog from "@/components/TypesCatalog";
+import TypesCatalog from "./catalog";
 
 export const metadata: Metadata = {
   title: "Asset types",

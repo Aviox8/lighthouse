@@ -160,8 +160,10 @@ npm run lint && npm run typecheck && npm test && npm run build`}</CodeBlock>
 
       <h2>Project layout</h2>
       <CodeBlock title="repository tree" lang="tree">{`app/
-  page.tsx              # landing page (server-rendered)
-  workbench/page.tsx    # the instrument: map, results, filters, summary
+  page.tsx              # landing page (static server component)
+  workbench/page.tsx    # the instrument route: map, results, filters, summary
+  workbench/{filters,result-list,summary-card,map-view}.tsx
+  types/catalog.tsx     # route-private interactive catalog island
   about/ types/ dev/ contributing/ security/
   docs/ docs/api/ docs/operations/
   license/ legal/ policy/ terms/ privacy/
@@ -170,9 +172,7 @@ npm run lint && npm run typecheck && npm test && npm run build`}</CodeBlock>
   api/nominatim/route.ts
   globals.css           # the entire design system
 components/
-  Navbar, Footer, StaticPage, CodeBlock, SearchBar, TypesCatalog
-  MapView, Filters, ResultList, SummaryCard (workbench panels)
-  GithubIcon
+  Navbar, Footer, StaticPage, CodeBlock, SearchBar, GithubIcon
 lib/
   types.ts              # ASSET_TYPE_MAP — every queryable asset type
   parser.ts             # query grammar: phrases + type:/operator:/… tokens

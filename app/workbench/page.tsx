@@ -6,9 +6,9 @@ import dynamic from "next/dynamic";
 import { ToggleButton, ToggleButtonGroup, Typography } from "@heroui/react";
 import Navbar from "@/components/Navbar";
 import SearchBar from "@/components/SearchBar";
-import Filters from "@/components/Filters";
-import ResultList from "@/components/ResultList";
-import SummaryCard from "@/components/SummaryCard";
+import Filters from "./filters";
+import ResultList from "./result-list";
+import SummaryCard from "./summary-card";
 import type {
   SearchResult,
   SearchError,
@@ -16,7 +16,7 @@ import type {
   Summary,
 } from "@/lib/types";
 
-const MapView = dynamic(() => import("@/components/MapView"), {
+const MapView = dynamic(() => import("./map-view"), {
   ssr: false,
   loading: () => <div className="map-loading">Loading map...</div>,
 });

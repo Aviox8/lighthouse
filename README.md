@@ -518,10 +518,16 @@ npm run build
 
 ```
 app/
-├── page.tsx              # Landing page (server component; redirects /?q= → /workbench)
-├── workbench/page.tsx    # The workbench route (map, results, filters, summary)
+├── page.tsx              # Landing page (static server component; /?q= redirects via proxy.ts)
+├── workbench/
+│   ├── page.tsx          # The workbench route (map, results, filters, summary)
+│   ├── filters.tsx       # route-private filter panel
+│   ├── result-list.tsx   # route-private result list
+│   ├── summary-card.tsx  # route-private aggregate summary card
+│   └── map-view.tsx      # route-private Leaflet map
+├── types/catalog.tsx     # route-private catalog island of /types
 ├── layout.tsx            # Root layout (<Analytics /> only)
-├── globals.css           # The entire design system (monochrome tokens)
+├── globals.css           # The entire design system (monochrome tokens + HeroUI bridge)
 ├── error.tsx             # Global error boundary
 ├── not-found.tsx         # 404
 ├── robots.ts · sitemap.ts # Crawl metadata (NEXT_PUBLIC_SITE_URL)
@@ -529,7 +535,7 @@ app/
 ├── docs/                 # Overview: pipeline + query grammar
 │   ├── api/              # HTTP reference: endpoints, errors, limits
 │   └── operations/       # Self-hosting, environment, troubleshooting
-├── types/                # Generated asset-type catalog (TypesCatalog)
+├── types/                # Generated asset-type catalog (route-private catalog.tsx)
 ├── dev/                  # Developer setup and project layout
 ├── contributing/         # Contribution workflow + asset-type recipe
 ├── security/             # Vulnerability disclosure policy
@@ -542,9 +548,7 @@ app/
 components/
 ├── Navbar.tsx · Footer.tsx · SearchBar.tsx    # Site chrome + shared query field
 ├── StaticPage.tsx        # Docs shell: sidebar nav + auto-TOC
-├── CodeBlock.tsx · TypesCatalog.tsx
-├── Filters.tsx · ResultList.tsx · SummaryCard.tsx · MapView.tsx
-└── GithubIcon.tsx        # Lucide v1 removed brand icons
+├── CodeBlock.tsx · GithubIcon.tsx
 
 lib/
 ├── types.ts              # ASSET_TYPE_MAP — 230+ queryable asset types
