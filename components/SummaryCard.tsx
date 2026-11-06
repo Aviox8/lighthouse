@@ -2,8 +2,7 @@
 
 import { useCallback } from "react";
 import { AlertTriangle, RefreshCw, Link, ExternalLink, FileText, Bot } from "lucide-react";
-import ContentSkeleton from "@/components/smoothui/content-skeleton";
-import SmoothButton from "@/components/smoothui/smooth-button";
+import { Button, Skeleton } from "@heroui/react";
 import type { Summary } from "@/lib/types";
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -47,23 +46,21 @@ export default function SummaryCard({
           </span>
           <div className="summary-badges" />
         </div>
-        <ContentSkeleton loading>
-          <div className="summary-headline">Generating summary…</div>
-          <p className="summary-overview">
-            The aggregate view is being compiled from OpenStreetMap results.
-          </p>
-          <ul className="summary-list">
-            <li>
-              <ContentSkeleton loading className="summary-skeleton-line w-[70%]" />
-            </li>
-            <li>
-              <ContentSkeleton loading className="summary-skeleton-line w-[55%]" />
-            </li>
-            <li>
-              <ContentSkeleton loading className="summary-skeleton-line w-[40%]" />
-            </li>
-          </ul>
-        </ContentSkeleton>
+        <p className="summary-headline">Generating summary…</p>
+        <p className="summary-overview">
+          The aggregate view is being compiled from OpenStreetMap results.
+        </p>
+        <ul className="summary-list" aria-hidden="true">
+          <li>
+            <Skeleton className="summary-skeleton-line h-3 w-[70%]" />
+          </li>
+          <li>
+            <Skeleton className="summary-skeleton-line h-3 w-[55%]" />
+          </li>
+          <li>
+            <Skeleton className="summary-skeleton-line h-3 w-[40%]" />
+          </li>
+        </ul>
       </div>
     );
   }
@@ -76,16 +73,15 @@ export default function SummaryCard({
             <AlertTriangle size={16} strokeWidth={2} />
           </svg>
           <p>{error}</p>
-          <SmoothButton
-            type="button"
-            variant="soft"
-            color="neutral"
-            size="xs"
-            onClick={onRetry}
+          <Button
+            className="summary-retry"
+            onPress={onRetry}
+            size="sm"
+            variant="secondary"
           >
-            <RefreshCw size={14} strokeWidth={2} className="mr-1" />
+            <RefreshCw aria-hidden="true" size={14} strokeWidth={2} />
             Retry
-          </SmoothButton>
+          </Button>
         </div>
       </div>
     );
@@ -150,17 +146,15 @@ export default function SummaryCard({
           <span className="summary-followups-label">Follow-up searches</span>
           <div className="summary-followup-list">
             {summary.followups.map((f: string, _i: number) => (
-              <SmoothButton
+              <Button
                 key={_i}
-                type="button"
-                variant="ghost"
-                color="neutral"
-                size="xs"
                 className="summary-followup"
-                onClick={() => handleFollowup(f)}
+                onPress={() => handleFollowup(f)}
+                size="sm"
+                variant="ghost"
               >
                 {f}
-              </SmoothButton>
+              </Button>
             ))}
           </div>
         </div>

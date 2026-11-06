@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { SearchField } from "@heroui/react";
 import { ASSET_TYPE_MAP } from "@/lib/types";
 
 /**
@@ -45,16 +46,25 @@ export default function TypesCatalog() {
   return (
     <div aria-label="Asset type catalog">
       <div className="types-toolbar">
-        <input
-          type="search"
-          className="types-search-input"
-          placeholder="Filter types — try “tower”, “hospital”, “substation”…"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
+        <SearchField
           aria-label="Filter asset types"
-          autoComplete="off"
-          spellCheck={false}
-        />
+          className="types-search"
+          fullWidth
+          name="type-filter"
+          onChange={setSearch}
+          value={search}
+          variant="secondary"
+        >
+          <SearchField.Group>
+            <SearchField.SearchIcon />
+            <SearchField.Input
+              autoComplete="off"
+              placeholder="Filter types — try “tower”, “hospital”, “substation”…"
+              spellCheck={false}
+            />
+            <SearchField.ClearButton />
+          </SearchField.Group>
+        </SearchField>
         <span className="types-count" aria-live="polite">
           {entries.length} / {Object.keys(ASSET_TYPE_MAP).length} types
         </span>

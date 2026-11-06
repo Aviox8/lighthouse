@@ -2,7 +2,6 @@
 
 import { AlertTriangle, Target, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
-import SmoothButton from "@/components/smoothui/smooth-button";
 import type { Asset } from "@/lib/types";
 
 interface ResultListProps {
@@ -61,12 +60,9 @@ export default function ResultList({
       <div className="results-list-content">
         <div className="results-list">
           {filtered.map((asset) => (
-            <SmoothButton
+            <button
               key={asset.id}
               type="button"
-              variant="ghost"
-              color="neutral"
-              size="sm"
               className={cn(
                 "result-item",
                 selectedId === asset.id ? "selected" : "",
@@ -96,7 +92,7 @@ export default function ResultList({
                   </span>
                 ))}
               </div>
-            </SmoothButton>
+            </button>
           ))}
         </div>
 
@@ -117,17 +113,14 @@ export default function ResultList({
         )}
 
         {truncated && onLoadMore && (
-          <SmoothButton
+          <button
             type="button"
-            variant="soft"
-            color="neutral"
-            size="sm"
             className="results-load-more"
             disabled={loading}
             onClick={onLoadMore}
           >
             Show more results
-          </SmoothButton>
+          </button>
         )}
       </div>
     </div>

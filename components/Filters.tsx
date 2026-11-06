@@ -3,10 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { SlidersHorizontal, X, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import {
-  Checkbox,
-  CheckboxTrigger,
-} from "@/components/smoothui/checkbox";
+import { cn } from "@/lib/utils";
 import type { SearchResult } from "@/lib/types";
 
 interface FiltersProps {
@@ -95,16 +92,21 @@ export default function Filters({
             </div>
           ) : (
             types.map(([type, count]) => (
-              <Checkbox
+              <button
                 key={type}
-                checked={selectedType === type}
-                onCheckedChange={(checked: boolean) => onTypeChange(checked ? type : null)}
+                type="button"
+                className={cn(
+                  "filter-item",
+                  selectedType === type ? "active" : "",
+                )}
+                aria-pressed={selectedType === type}
+                onClick={() =>
+                  onTypeChange(selectedType === type ? null : type)
+                }
               >
-                <CheckboxTrigger className="filter-item">
-                  <span className="filter-name">{type.replace(/_/g, " ")}</span>
-                  <span className="filter-count">{count}</span>
-                </CheckboxTrigger>
-              </Checkbox>
+                <span className="filter-name">{type.replace(/_/g, " ")}</span>
+                <span className="filter-count">{count}</span>
+              </button>
             ))
           )}
           {hasFilters && selectedType && (
@@ -134,16 +136,23 @@ export default function Filters({
             </div>
           ) : (
             operators.map(([operator, count]) => (
-              <Checkbox
+              <button
                 key={operator}
-                checked={selectedOperator === operator}
-                onCheckedChange={(checked: boolean) => onOperatorChange(checked ? operator : null)}
+                type="button"
+                className={cn(
+                  "filter-item",
+                  selectedOperator === operator ? "active" : "",
+                )}
+                aria-pressed={selectedOperator === operator}
+                onClick={() =>
+                  onOperatorChange(
+                    selectedOperator === operator ? null : operator,
+                  )
+                }
               >
-                <CheckboxTrigger className="filter-item">
-                  <span className="filter-name">{operator}</span>
-                  <span className="filter-count">{count}</span>
-                </CheckboxTrigger>
-              </Checkbox>
+                <span className="filter-name">{operator}</span>
+                <span className="filter-count">{count}</span>
+              </button>
             ))
           )}
           {hasFilters && selectedOperator && (

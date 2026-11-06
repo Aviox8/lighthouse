@@ -8,6 +8,22 @@ import type { Asset } from "@/lib/types";
 
 const OSM_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
+const MARKER_ICON = L.divIcon({
+  className: "lighthouse-marker",
+  html: "<span></span>",
+  iconSize: [12, 12],
+  iconAnchor: [6, 6],
+  popupAnchor: [0, -9],
+});
+
+const MARKER_ICON_ACTIVE = L.divIcon({
+  className: "lighthouse-marker lighthouse-marker--active",
+  html: "<span></span>",
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+  popupAnchor: [0, -12],
+});
+
 function FitBoundsOnMount({
   bounds,
   results,
@@ -101,6 +117,7 @@ export default function MapView({
           <Marker
             key={asset.id}
             position={[asset.lat, asset.lon]}
+            icon={asset.id === selectedId ? MARKER_ICON_ACTIVE : MARKER_ICON}
             eventHandlers={{
               click: () => onSelect(asset.id),
             }}

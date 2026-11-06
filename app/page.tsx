@@ -1,456 +1,497 @@
-"use client";
-
-import { useState, useCallback, useEffect, Suspense, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
-import Homepage from "@/components/Homepage";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowUpRight, Search } from "lucide-react";
+import { Card, Chip, Kbd, Typography } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { TabsRoot, TabsList, TabsTab, TabsIndicator } from "@/components/smoothui/tabs";
-import Filters from "@/components/Filters";
-import ResultList from "@/components/ResultList";
-import SummaryCard from "@/components/SummaryCard";
-import type {
-  SearchResult,
-  SearchError,
-  SearchStats,
-  Summary,
-} from "@/lib/types";
+import SearchBar from "@/components/SearchBar";
+import GithubIcon from "@/components/GithubIcon";
 
-const MapView = dynamic(() => import("@/components/MapView"), {
-  ssr: false,
-  loading: () => <div className="map-loading">Loading map...</div>,
-});
+export const metadata: Metadata = {
+  title: "Physical infrastructure search",
+  description:
+    "Lighthouse turns OpenStreetMap into a fast infrastructure search engine. Find telecom towers, data centers, power plants, ports and 230+ asset types by place, operator or radius — then read the map.",
+};
 
-type MobileTab = "map" | "results" | "filters";
+const SOURCE_URL = "https://github.com/Aviox8/lighthouse";
 
-function useBreakpoint() {
-  const [breakpoint, setBreakpoint] = useState<"mobile" | "desktop">("desktop");
+/** Example queries must match the real grammar — radius is in kilometres. */
+const EXAMPLE_QUERIES = [
+  { label: "cell towers in Berlin", query: "cell towers in Berlin radius:40" },
+  {
+    label: "data centers near London",
+    query: "data centers near:London radius:60",
+  },
+  {
+    label: "wind farms near Copenhagen",
+    query: "wind farms near Copenhagen radius:120",
+  },
+  { label: "substations in New York", query: "type:substation in New York radius:80" },
+  { label: "ports near Rotterdam", query: "type:port near:Rotterdam radius:70" },
+  { label: "hospitals in Mumbai", query: "type:hospital in mumbai" },
+];
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 1024px)");
-    const updateBreakpoint = () =>
-      setBreakpoint(mediaQuery.matches ? "mobile" : "desktop");
+const PREVIEW_RESULTS = [
+  { name: "Wind farm", meta: "12 turbines · operational", distance: "0.8 km" },
+  { name: "Wind turbine", meta: "generator: wind", distance: "1.4 km" },
+  { name: "Wind farm", meta: "offshore · 24 turbines", distance: "6.2 km" },
+  { name: "Wind turbine", meta: "generator: wind", distance: "9.7 km" },
+];
 
-    updateBreakpoint();
-    mediaQuery.addEventListener("change", updateBreakpoint);
-    return () => mediaQuery.removeEventListener("change", updateBreakpoint);
-  }, []);
+const QUERY_TOKENS = [
+  { token: "type:", meaning: "Asset type", example: "type:data_center" },
+  { token: "operator:", meaning: "Operator / owner", example: "operator:google" },
+  { token: "region:", meaning: "State / region", example: "region:bavaria" },
+  { token: "country:", meaning: "Country", example: "country:france" },
+  { token: "near:", meaning: "Proximity anchor", example: "near:copenhagen" },
+  { token: "radius:", meaning: "Radius in km", example: "radius:80" },
+];
 
-  return breakpoint;
-}
+const PARSED_EXAMPLES = [
+  {
+    input: "wind farms near Copenhagen radius:120",
+    output: "type:wind near:copenhagen radius:120",
+  },
+  {
+    input: "telecom towers in Karnataka",
+    output: "type:telecom region:karnataka",
+  },
+  {
+    input: "data centers operator:google",
+    output: "type:data_center operator:google",
+  },
+];
 
-function sanitizeQuery(query: string): string | null {
-  const sanitized = query
-    .trim()
-    .slice(0, 500)
-    .replace(/[\x00-\x1F\x7F]/g, "");
-  return sanitized.length > 0 ? sanitized : null;
-}
+const CAPABILITIES = [
+  {
+    index: "01 / Catalog",
+    title: "230+ asset types",
+    body: "Telecom, energy, transport, utilities, public safety and more — mapped to OpenStreetMap tags across 30+ categories.",
+    href: "/types",
+    link: "Browse the catalog",
+  },
+  {
+    index: "02 / Query",
+    title: "A grammar that gets out of the way",
+    body: "Ask in plain language or use exact tokens for type, operator, region, country, proximity and radius. Radius is in kilometres.",
+    href: "/docs",
+    link: "Read the query grammar",
+  },
+  {
+    index: "03 / Workbench",
+    title: "Maps, lists, and aggregate summaries",
+    body: "Results are plotted with Leaflet, filterable by type and operator, and capped at 5,000 features per search. Select a feature to inspect it.",
+    href: "/docs/api",
+    link: "See the HTTP reference",
+  },
+];
 
-function compactSummaryStats(stats: SearchStats): SearchStats {
-  const topEntries = (record: Record<string, number>, limit: number) =>
-    Object.fromEntries(
-      Object.entries(record)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, limit),
-    );
+const SOURCE_ITEMS = [
+  {
+    label: "OpenStreetMap",
+    href: "https://www.openstreetmap.org/copyright",
+  },
+  { label: "Overpass API", href: "https://wiki.openstreetmap.org/wiki/Overpass_API" },
+  { label: "Nominatim", href: "https://nominatim.openstreetmap.org/" },
+  { label: "Leaflet", href: "https://leafletjs.com/" },
+  { label: "MIT license", href: "/license" },
+];
 
-  return {
-    total: stats.total,
-    types: topEntries(stats.types, 12),
-    operators: topEntries(stats.operators, 12),
-  };
-}
+const OSS_FACTS = [
+  { label: "License", value: "MIT" },
+  { label: "Accounts", value: "None" },
+  { label: "Search cap", value: "5,000 features" },
+  { label: "Summaries", value: "Aggregate counts only" },
+];
 
-export default function Home() {
+export default function Page() {
   return (
-    <Suspense fallback={<div className="app-loading">Loading...</div>}>
-      <HomeContent />
-    </Suspense>
-  );
-}
-
-function HomeContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [currentQuery, setCurrentQuery] = useState<string>("");
-
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
-  const [summaryRetryKey, setSummaryRetryKey] = useState(0);
-
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [filterOperator, setFilterOperator] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState<string | null>(null);
-
-  const [mobileTab, setMobileTab] = useState<MobileTab>("map");
-  const [resultsPanelWidth, setResultsPanelWidth] = useState<number>(400);
-  const breakpoint = useBreakpoint();
-
-  const isInitialMount = useRef(true);
-  const lastUrlQuery = useRef<string | null>(null);
-  const isResizing = useRef(false);
-  const searchAbortControllerRef = useRef<AbortController | null>(null);
-  const summaryAbortControllerRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    if (breakpoint === "mobile") {
-      setMobileTab("map");
-    }
-  }, [breakpoint]);
-
-  const handleSearch = useCallback(
-    async (query: string, updateUrl = true) => {
-      searchAbortControllerRef.current?.abort();
-      summaryAbortControllerRef.current?.abort();
-      const controller = new AbortController();
-      searchAbortControllerRef.current = controller;
-
-      setLoading(true);
-      setError(null);
-      setSelectedId(null);
-      setFilterOperator(null);
-      setFilterType(null);
-      setCurrentQuery(query);
-      setSearchResult(null);
-      setSummary(null);
-      setSummaryError(null);
-      setSummaryLoading(false);
-
-      if (updateUrl) {
-        lastUrlQuery.current = query;
-        const params = new URLSearchParams();
-        params.set("q", query);
-        router.push(`?${params.toString()}`, { scroll: false });
-      }
-
-      try {
-        const response = await fetch("/api/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query }),
-          signal: controller.signal,
-        });
-
-        const contentType = response.headers.get("content-type") || "";
-        const data = contentType.includes("application/json")
-          ? await response.json()
-          : null;
-        if (controller.signal.aborted) return;
-
-        if (!response.ok || !data) {
-          setError(
-            data && typeof data.error === "string"
-              ? (data as SearchError).error
-              : "Search service timed out or unavailable. Try a smaller area.",
-          );
-          setSearchResult(null);
-        } else {
-          setSearchResult(data as SearchResult);
-          setError(null);
-        }
-      } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") return;
-        setError("Network error. Please check your connection.");
-        setSearchResult(null);
-      } finally {
-        if (searchAbortControllerRef.current === controller) {
-          setLoading(false);
-        }
-      }
-    },
-    [router],
-  );
-
-  useEffect(() => {
-    const urlQuery = searchParams.get("q");
-
-    if (urlQuery === lastUrlQuery.current && !isInitialMount.current) {
-      return;
-    }
-    lastUrlQuery.current = urlQuery;
-    isInitialMount.current = false;
-
-    if (urlQuery) {
-      const sanitized = sanitizeQuery(urlQuery);
-      if (sanitized) {
-        setCurrentQuery(sanitized);
-        handleSearch(sanitized, false);
-      }
-    }
-  }, [searchParams, handleSearch]);
-
-  useEffect(() => {
-    if (!searchResult || !currentQuery) {
-      setSummary(null);
-      setSummaryLoading(false);
-      setSummaryError(null);
-      return;
-    }
-
-    summaryAbortControllerRef.current?.abort();
-    const controller = new AbortController();
-    summaryAbortControllerRef.current = controller;
-
-    setSummary(null);
-    setSummaryError(null);
-    setSummaryLoading(true);
-
-    const requestSummary = async () => {
-      try {
-        const response = await fetch("/api/summary", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: currentQuery,
-            stats: compactSummaryStats(searchResult.stats),
-            truncated: searchResult.truncated,
-            warning: searchResult.warning,
-          }),
-          signal: controller.signal,
-        });
-
-        const contentType = response.headers.get("content-type") || "";
-        const data = contentType.includes("application/json")
-          ? await response.json()
-          : null;
-        if (controller.signal.aborted) return;
-
-        if (!response.ok || !data) {
-          setSummaryError(
-            data && typeof data.error === "string"
-              ? data.error
-              : "Summary service unavailable. Search results are unaffected.",
-          );
-          return;
-        }
-
-        setSummary(data as Summary);
-      } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") return;
-        setSummaryError("Could not generate a summary.");
-      } finally {
-        if (!controller.signal.aborted) {
-          setSummaryLoading(false);
-        }
-      }
-    };
-
-    requestSummary();
-
-    return () => controller.abort();
-  }, [searchResult, currentQuery, summaryRetryKey]);
-
-  const handleRetrySummary = useCallback(() => {
-    setSummaryRetryKey((key) => key + 1);
-  }, []);
-
-  const handleSummaryFollowup = useCallback(
-    (query: string) => {
-      handleSearch(query);
-    },
-    [handleSearch],
-  );
-
-  const handleRadiusCommit = useCallback(
-    (radiusKm: number) => {
-      const stripped = currentQuery
-        .replace(/\bradius:\s*\d+(?:\.\d+)?/i, "")
-        .trim();
-      handleSearch(`${stripped} radius:${radiusKm}`);
-    },
-    [currentQuery, handleSearch],
-  );
-
-  const handleSelect = useCallback((id: string) => {
-    setSelectedId((prev) => (prev === id ? null : id));
-  }, []);
-
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isResizing.current = true;
-    document.body.style.cursor = "ew-resize";
-    document.body.style.userSelect = "none";
-  }, []);
-
-  const handleResizeKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      const step = e.shiftKey ? 32 : 16;
-
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-        e.preventDefault();
-        const delta = e.key === "ArrowLeft" ? -step : step;
-        setResultsPanelWidth((width) =>
-          Math.max(250, Math.min(600, width + delta)),
-        );
-      } else if (e.key === "Home") {
-        e.preventDefault();
-        setResultsPanelWidth(250);
-      } else if (e.key === "End") {
-        e.preventDefault();
-        setResultsPanelWidth(600);
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing.current) return;
-
-      const filtersWidth = 240;
-      const newWidth = Math.max(250, Math.min(600, e.clientX - filtersWidth));
-      setResultsPanelWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      if (isResizing.current) {
-        isResizing.current = false;
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-      }
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, []);
-
-  const inWorkbench = Boolean(currentQuery);
-  if (!inWorkbench) {
-    return <Homepage onSearch={handleSearch} loading={loading} />;
-  }
-
-  return (
-    <div className="app-container">
-      <a href="#main-content" className="skip-link">
-        Skip to main content
-      </a>
+    <div className="home" aria-label="Lighthouse">
       <Navbar />
 
-      {error && (
-        <div className="error-banner" role="alert">
-          <svg className="error-icon" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <span>{error}</span>
-          <button
-            type="button"
-            className="error-dismiss"
-            onClick={() => setError(null)}
-            aria-label="Dismiss error"
-          >
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-      )}
-
-      <main
-        className="app-main"
-        id="main-content"
-        style={{
-          gridTemplateColumns: breakpoint === "desktop"
-            ? `240px ${resultsPanelWidth}px 1fr`
-            : undefined,
-        }}
-      >
-        <div className={`panel-filters ${mobileTab === "filters" ? "mobile-active" : ""}`}>
-          <Filters
-            searchResult={searchResult}
-            selectedOperator={filterOperator}
-            selectedType={filterType}
-            onOperatorChange={setFilterOperator}
-            onTypeChange={setFilterType}
-            onRadiusCommit={handleRadiusCommit}
-          />
-        </div>
-
-        <div className={`panel-results ${mobileTab === "results" ? "mobile-active" : ""}`}>
-          <div className="results-host">
-            <SummaryCard
-              summary={summary}
-              loading={summaryLoading}
-              error={summaryError}
-              onRetry={handleRetrySummary}
-              onFollowup={handleSummaryFollowup}
-            />
-            <ResultList
-              results={searchResult?.results || []}
-              selectedId={selectedId}
-              onSelect={handleSelect}
-              filterOperator={filterOperator}
-              filterType={filterType}
-              truncated={searchResult?.truncated}
-              loading={loading}
-            />
+      <header className="home-hero" aria-labelledby="home-title">
+        <div className="home-hero-inner">
+          <div className="home-hero-meta">
+            <Chip className="home-status" size="sm" variant="soft">
+              Open source · MIT
+            </Chip>
+            <Typography className="home-kicker" type="body-xs">
+              OpenStreetMap infrastructure search
+            </Typography>
           </div>
-          {breakpoint === "desktop" && (
-            <div
-              className="resize-handle"
-              onMouseDown={handleResizeStart}
-              onKeyDown={handleResizeKeyDown}
-              role="separator"
-              aria-orientation="vertical"
-              aria-valuenow={resultsPanelWidth || 0}
-              aria-valuemin={250}
-              aria-valuemax={600}
-              aria-label="Resize results panel (arrow keys)"
-              tabIndex={0}
+
+          <Typography className="home-title" id="home-title" type="h1">
+            Search the world&rsquo;s physical infrastructure.
+          </Typography>
+          <Typography className="home-subtitle" type="body">
+            Lighthouse turns OpenStreetMap into a fast infrastructure search
+            engine. Find telecom towers, data centers, power plants, ports and
+            230+ asset types by place, operator or radius — then read the map.
+          </Typography>
+
+          <div className="home-search-block">
+            <SearchBar
+              kbdHint
+              navigateTo="/workbench"
+              placeholder="e.g. cell towers in Berlin radius:40"
+              shortcut
             />
-          )}
+            <p className="home-search-hint">
+              <span>Press</span>
+              <Kbd className="home-hint-kbd">
+                <Kbd.Content>/</Kbd.Content>
+              </Kbd>
+              <span>or</span>
+              <Kbd className="home-hint-kbd">
+                <Kbd.Abbr keyValue="command" />
+                <Kbd.Content>K</Kbd.Content>
+              </Kbd>
+              <span>to focus · free, no account</span>
+            </p>
+          </div>
+
+          <div className="home-examples" aria-label="Example searches">
+            <span className="home-examples-label">Try</span>
+            {EXAMPLE_QUERIES.map((example) => (
+              <Link
+                aria-label={`Search for ${example.query}`}
+                className="home-example"
+                href={`/workbench?q=${encodeURIComponent(example.query)}`}
+                key={example.query}
+                title={example.query}
+              >
+                {example.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="home-handoff">
+            <Link href="/docs">
+              Read the docs
+              <span className="home-handoff-arrow" aria-hidden="true">
+                →
+              </span>
+            </Link>
+            <Link href="/types">
+              Browse 230+ asset types
+              <span className="home-handoff-arrow" aria-hidden="true">
+                →
+              </span>
+            </Link>
+            <a href={SOURCE_URL} rel="noopener noreferrer" target="_blank">
+              Source &amp; issues
+              <span className="home-handoff-arrow" aria-hidden="true">
+                ↗
+              </span>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <div className="home-source-strip" aria-label="Data sources and license">
+        <div className="home-source-inner">
+          <span className="home-source-label">Built on open data</span>
+          {SOURCE_ITEMS.map((item) => (
+            <a
+              className="home-source-link"
+              href={item.href}
+              key={item.label}
+              rel="noopener noreferrer"
+              target={item.href.startsWith("http") ? "_blank" : undefined}
+            >
+              {item.label}
+            </a>
+          ))}
+          <span className="home-source-license">MIT · No accounts</span>
+        </div>
+      </div>
+
+      <section className="home-preview-section" aria-labelledby="preview-title">
+        <div className="home-preview-head">
+          <div>
+            <Typography className="home-kicker" type="body-xs">
+              The workbench
+            </Typography>
+            <Typography className="home-display" id="preview-title" type="h2">
+              Every result, on the map.
+            </Typography>
+          </div>
+          <Typography className="home-lede" type="body-sm">
+            A search opens a map, a filterable result list, and an optional
+            aggregate summary. Zoom into a feature, switch type or operator
+            filters, and commit a new radius without rewriting the query.
+          </Typography>
         </div>
 
-        <div className={`panel-map ${mobileTab === "map" ? "mobile-active" : ""}`}>
-          <MapView
-            results={searchResult?.results || []}
-            bounds={searchResult?.bounds || null}
-            selectedId={selectedId}
-            onSelect={handleSelect}
-            filterOperator={filterOperator}
-            filterType={filterType}
-            loading={loading}
-          />
+        <div className="home-preview" aria-label="Illustrative workbench view">
+          <div className="home-preview-bar">
+            <div className="home-preview-query">
+              <Search aria-hidden="true" strokeWidth={2} />
+              <code>wind farms near Copenhagen radius:120</code>
+            </div>
+            <div className="home-preview-meta">
+              <Chip className="home-status home-status--quiet" size="sm" variant="soft">
+                Example view
+              </Chip>
+              <span>
+                <strong>1,284</strong> features
+              </span>
+            </div>
+          </div>
+
+          <div className="home-preview-body">
+            <div className="home-preview-results">
+              <div className="home-preview-results-head">
+                <span>Results</span>
+                <span>4 of 1,284</span>
+              </div>
+              <ul className="home-preview-list">
+                {PREVIEW_RESULTS.map((result) => (
+                  <li className="home-preview-item" key={`${result.name}-${result.distance}`}>
+                    <span className="home-preview-dot" aria-hidden="true" />
+                    <div className="home-preview-item-main">
+                      <p className="home-preview-item-title">{result.name}</p>
+                      <p className="home-preview-item-sub">{result.meta}</p>
+                    </div>
+                    <span className="home-preview-distance">{result.distance}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="home-preview-map" aria-hidden="true">
+              <svg preserveAspectRatio="xMidYMid slice" viewBox="0 0 760 420">
+                <defs>
+                  <pattern
+                    height="48"
+                    id="lighthouse-preview-grid"
+                    patternUnits="userSpaceOnUse"
+                    width="48"
+                  >
+                    <path
+                      d="M48 0H0V48"
+                      fill="none"
+                      stroke="rgba(255,255,255,0.045)"
+                      strokeWidth="1"
+                    />
+                  </pattern>
+                </defs>
+                <rect fill="url(#lighthouse-preview-grid)" height="420" width="760" />
+                <g fill="none" stroke="rgba(255,255,255,0.13)" strokeWidth="1.5">
+                  <path d="M-40 320 C 120 280 210 300 330 250 S 560 180 800 210" />
+                  <path d="M100 -20 C 140 90 190 160 250 440" />
+                  <path d="M480 -20 C 500 110 540 210 590 440" />
+                  <path d="M-20 110 C 160 100 270 140 400 100 S 640 60 780 90" />
+                </g>
+                <path
+                  d="M300 -20 C 320 80 360 140 420 200 S 500 300 520 440"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.055)"
+                  strokeWidth="12"
+                />
+                <g fill="none" stroke="rgba(255,255,255,0.34)" strokeWidth="1">
+                  <circle cx="360" cy="210" r="12" />
+                  <circle cx="452" cy="282" r="9" />
+                  <circle cx="286" cy="150" r="8" />
+                  <circle cx="540" cy="176" r="7" />
+                </g>
+                <g fill="#fff">
+                  <circle cx="360" cy="210" r="4" />
+                  <circle cx="452" cy="282" r="3" />
+                  <circle cx="286" cy="150" r="3" />
+                  <circle cx="540" cy="176" r="2.5" />
+                </g>
+              </svg>
+              <span className="home-preview-map-badge">Leaflet · OSM</span>
+              <span className="home-preview-map-caption">
+                55.6761° N · 12.5683° E
+              </span>
+            </div>
+          </div>
+
+          <div className="home-preview-foot">
+            <span>Map · Leaflet</span>
+            <span>Data · OpenStreetMap</span>
+            <span>Summary · aggregate counts only</span>
+            <span>Illustrative view</span>
+          </div>
         </div>
-      </main>
+      </section>
+
+      <section className="home-section" aria-labelledby="capabilities-title">
+        <div className="home-section-inner">
+          <div className="home-section-head">
+            <div>
+              <Typography className="home-kicker" type="body-xs">
+                Capabilities
+              </Typography>
+              <Typography className="home-display" id="capabilities-title" type="h2">
+                Built for questions the map can answer.
+              </Typography>
+            </div>
+            <Typography className="home-lede" type="body-sm">
+              No dashboards to configure and no proprietary data layer. Point a
+              query at a place and inspect the physical infrastructure recorded
+              there.
+            </Typography>
+          </div>
+
+          <div className="home-cap-grid">
+            {CAPABILITIES.map((capability) => (
+              <Card className="home-cap-card" key={capability.title} variant="transparent">
+                <Card.Header>
+                  <span className="home-cap-index">{capability.index}</span>
+                  <Card.Title>{capability.title}</Card.Title>
+                  <Card.Description>{capability.body}</Card.Description>
+                </Card.Header>
+                <Card.Footer>
+                  <Link className="home-cap-link" href={capability.href}>
+                    {capability.link}
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                </Card.Footer>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="home-section home-section--alt" aria-labelledby="grammar-title">
+        <div className="home-section-inner home-query-grid">
+          <div className="home-query-copy">
+            <Typography className="home-kicker" type="body-xs">
+              Query language
+            </Typography>
+            <Typography className="home-display" id="grammar-title" type="h2">
+              Plain language in. Exact queries out.
+            </Typography>
+            <Typography className="home-lede" type="body-sm">
+              Every query resolves to the same plan: an asset type or operator,
+              plus a geographic scope. Use tokens when you need precision.
+            </Typography>
+
+            <table className="landing-table">
+              <thead>
+                <tr>
+                  <th scope="col">Token</th>
+                  <th scope="col">Meaning</th>
+                  <th scope="col">Example</th>
+                </tr>
+              </thead>
+              <tbody>
+                {QUERY_TOKENS.map((token) => (
+                  <tr key={token.token}>
+                    <td>
+                      <code>{token.token}</code>
+                    </td>
+                    <td>{token.meaning}</td>
+                    <td>
+                      <code>{token.example}</code>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <Link className="home-text-link" href="/docs">
+              Read the full grammar
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+
+          <div className="home-query-panel">
+            <div className="home-query-panel-head">
+              <span>Parser</span>
+              <span>Natural → structured</span>
+            </div>
+            {PARSED_EXAMPLES.map((example) => (
+              <div className="home-query-example" key={example.input}>
+                <code className="home-query-input">{example.input}</code>
+                <span className="home-query-arrow" aria-hidden="true">
+                  ↓
+                </span>
+                <code className="home-query-output">{example.output}</code>
+              </div>
+            ))}
+            <p className="home-query-note">
+              Both forms hit the same parser. Structured tokens can be combined
+              in any order; radius is always in kilometres.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="home-section" aria-labelledby="oss-title">
+        <div className="home-section-inner">
+          <div className="home-oss">
+            <div>
+              <Typography className="home-kicker" type="body-xs">
+                Open source
+              </Typography>
+              <Typography className="home-display" id="oss-title" type="h2">
+                Public code. Public data.
+              </Typography>
+              <Typography className="home-lede" type="body-sm">
+                Lighthouse is MIT-licensed and built on open map data. Run the
+                public instance, self-host the Next.js app, or add an asset
+                type. No accounts, no proprietary map API, no hidden data
+                source.
+              </Typography>
+              <div className="home-oss-actions">
+                <Link
+                  className={buttonVariants({ size: "md", variant: "primary" })}
+                  href="/docs/operations"
+                >
+                  Self-host Lighthouse
+                  <ArrowUpRight aria-hidden="true" size={15} strokeWidth={2} />
+                </Link>
+                <a
+                  className={buttonVariants({ size: "md", variant: "secondary" })}
+                  href={SOURCE_URL}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  <GithubIcon className="home-oss-github" />
+                  View source
+                </a>
+              </div>
+            </div>
+
+            <dl className="home-oss-facts">
+              {OSS_FACTS.map((fact) => (
+                <div className="home-oss-fact" key={fact.label}>
+                  <dt>{fact.label}</dt>
+                  <dd>{fact.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      <section className="home-cta" aria-labelledby="cta-title">
+        <div className="home-cta-inner">
+          <Typography className="home-kicker" type="body-xs">
+            Start here
+          </Typography>
+          <Typography className="home-cta-title" id="cta-title" type="h2">
+            Point it at a place.
+          </Typography>
+          <p className="home-cta-sub">
+            One query opens the workbench: map, results, filters, and an
+            optional aggregate summary. No account, no install.
+          </p>
+          <SearchBar
+            navigateTo="/workbench"
+            placeholder="e.g. wind farms near Copenhagen radius:120"
+            variant="cta"
+          />
+          <p className="home-cta-foot">No account · No install · MIT</p>
+        </div>
+      </section>
 
       <Footer />
-
-      <div className="mobile-nav" aria-label="Panels">
-        <TabsRoot value={mobileTab} onValueChange={(v) => setMobileTab(v as MobileTab)}>
-          <TabsList variant="segment" className="border border-primary bg-[var(--bg-elevated)] p-1">
-            <TabsTab value="map">
-              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4 shrink-0" aria-hidden="true">
-                <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-              Map
-            </TabsTab>
-            <TabsTab value="results">
-              Results{searchResult ? ` (${searchResult.stats.total})` : ""}
-            </TabsTab>
-            <TabsTab value="filters">
-              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="size-4 shrink-0" aria-hidden="true">
-                <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
-              Filters
-            </TabsTab>
-            <TabsIndicator />
-          </TabsList>
-        </TabsRoot>
-      </div>
     </div>
   );
 }

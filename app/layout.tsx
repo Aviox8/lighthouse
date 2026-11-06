@@ -35,7 +35,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0a0e14",
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
@@ -44,7 +44,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html
+      lang="en"
+      className={`dark ${inter.variable} ${jetbrainsMono.variable}`}
+      data-theme="dark"
+    >
       <head>
         <link
           rel="preconnect"
@@ -62,7 +66,7 @@ export default function RootLayout({
           href="https://overpass-api.de"
         />
       </head>
-      <body>
+      <body className="bg-background text-foreground">
         {children}
         <Analytics />
       </body>
