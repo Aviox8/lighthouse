@@ -18,7 +18,7 @@ Lighthouse enables searching, monitoring, and analyzing real-world infrastructur
 - Surveillance cameras and emergency infrastructure
 - Transportation hubs (train stations, bus stations, taxi stands)
 
-And 230+ asset types across 30+ categories — the full, generated catalog is published at [`/types`](https://github.com/Aviox8/lighthouse#project-structure) and browsable at the site's `/types` route.
+And 230+ asset types across 30+ categories — the full, generated catalog is browsable at the site's `/types` route.
 
 ## Architecture
 
@@ -29,7 +29,8 @@ flowchart TB
     classDef external fill:#f59e0b,stroke:#d97706,color:#fff
 
     subgraph FE["Frontend"]
-        Homepage["Homepage — landing + query input"]
+        Homepage["Landing page (/) — query input"]
+        Workbench["Workbench (/workbench) — map + query bar"]
         Filters["Filters"]
         ResultList["ResultList"]
         SummaryCard["SummaryCard"]
@@ -53,7 +54,8 @@ flowchart TB
         LLM["OpenRouter / Ollama — Optional LLM"]
     end
 
-    Homepage & Filters & ResultList & MapView -->|"POST /api/search"| route
+    Homepage -->|"navigate"| Workbench
+    Workbench & Filters & ResultList & MapView -->|"POST /api/search"| route
     SummaryCard -->|"POST /api/summary"| summaryRoute
 
     route -->|"parse query"| parser
@@ -67,7 +69,7 @@ flowchart TB
     summary -.->|"optional"| Exa
     summary -.->|"optional"| LLM
 
-    class Homepage,Filters,ResultList,SummaryCard,MapView frontend
+    class Homepage,Workbench,Filters,ResultList,SummaryCard,MapView frontend
     class route,summaryRoute,parser,geo,overpass,summary,cache backend
     class Nominatim,OverpassAPI,Exa,LLM external
 ```
@@ -97,7 +99,7 @@ Geographic resolution uses the [Nominatim](https://nominatim.openstreetmap.org/)
 
 Infrastructure queries execute against the [Overpass API](https://overpass-api.de/), which provides read-only access to OSM data.
 
-With `OVERPASS_CH_KEY` set, queries run against [overpass.ch](https://overpass.ch/) first (a keyed instance of the same API) and fall back to the public mirrors. Geocoding then prefers its Nominatim-compatible endpoint too, which allows 300 requests/min instead of the public 1 request/second. The key is server-side only: never expose it as `NEXT_PUBLIC_*`, since it travels in the request path.
+With `OVERPASS_CH_KEY` set, queries run against [overpass.ch](https://overpass.ch/) first (a keyed instance of the same API) and fall back to the public mirrors. Geocoding then prefers its Nominatim-compatible endpoint too; the app still serializes geocoding requests. The key is server-side only: never expose it as `NEXT_PUBLIC_*`, since it travels in the request path.
 
 ### Exa (Optional)
 
@@ -516,30 +518,33 @@ npm run build
 
 ```
 app/
-├── page.tsx              # Landing + workbench (single route, two states)
+├── page.tsx              # Landing page (server component; redirects /?q= → /workbench)
+├── workbench/page.tsx    # The workbench route (map, results, filters, summary)
 ├── layout.tsx            # Root layout (<Analytics /> only)
 ├── globals.css           # The entire design system (monochrome tokens)
 ├── error.tsx             # Global error boundary
 ├── not-found.tsx         # 404
 ├── robots.ts · sitemap.ts # Crawl metadata (NEXT_PUBLIC_SITE_URL)
 ├── about/                # About the project, FAQ
-├── docs/                 # Query grammar, API, env vars, self-hosting
+├── docs/                 # Overview: pipeline + query grammar
+│   ├── api/              # HTTP reference: endpoints, errors, limits
+│   └── operations/       # Self-hosting, environment, troubleshooting
 ├── types/                # Generated asset-type catalog (TypesCatalog)
-├── dev/                  # Developer & contribution guide
-├── license/ legal/ terms/ privacy/   # Docs-site legal set
+├── dev/                  # Developer setup and project layout
+├── contributing/         # Contribution workflow + asset-type recipe
+├── security/             # Vulnerability disclosure policy
+├── license/ legal/ policy/ terms/ privacy/   # OSS + legal set
 └── api/
     ├── search/route.ts   # POST /api/search
     ├── summary/route.ts  # POST /api/summary (aggregate stats only)
     └── nominatim/route.ts
 
 components/
-├── Homepage.tsx          # Landing: hero command, readout, sections
-├── Navbar.tsx · Footer.tsx · CTA.tsx          # Site chrome
+├── Navbar.tsx · Footer.tsx · SearchBar.tsx    # Site chrome + shared query field
 ├── StaticPage.tsx        # Docs shell: sidebar nav + auto-TOC
 ├── CodeBlock.tsx · TypesCatalog.tsx
 ├── Filters.tsx · ResultList.tsx · SummaryCard.tsx · MapView.tsx
-├── smoothui/             # Local primitives (button, input, tabs, checkbox…)
-└── ui/scroll-area.tsx
+└── GithubIcon.tsx        # Lucide v1 removed brand icons
 
 lib/
 ├── types.ts              # ASSET_TYPE_MAP — 230+ queryable asset types
@@ -550,6 +555,30 @@ lib/
 ├── cache.ts · search-index.ts
 └── __tests__/            # parser.ts, overpass.ts, summary.ts suites
 ```
+
+## Site Routes
+
+The deployed site is also the project documentation:
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Landing page — the product homepage |
+| `/workbench` | The workbench: map, results, filters, summary (accepts `?q=`) |
+| `/types` | Generated catalog of every queryable asset type |
+| `/docs` | Architecture and query grammar |
+| `/docs/api` | HTTP reference: endpoints, errors, limits |
+| `/docs/operations` | Self-hosting, environment variables, troubleshooting |
+| `/about` | What the project is and is not |
+| `/dev` | Local setup, stack, scripts, project layout |
+| `/contributing` | Contribution workflow and asset-type recipe |
+| `/security` | Private vulnerability disclosure policy |
+| `/license` | MIT license text |
+| `/legal` | Attribution, upstream policies, AI disclosure |
+| `/policy` | Acceptable use rules for the public instance |
+| `/terms` | Terms of Service |
+| `/privacy` | Privacy policy |
+
+All content routes render through `components/StaticPage.tsx` (grouped sidebar, auto-generated "On this page" TOC, edit-on-GitHub link, Previous/Next docs pagination). New routes must also be added to `app/sitemap.ts`, the `SITE_SECTIONS` sidebar, and the footer columns.
 
 ## Deployment
 
@@ -564,12 +593,13 @@ vercel
 
 No environment variables are required. Without provider keys, Lighthouse uses the deterministic local summary and public OpenStreetMap APIs.
 
-See `.env.example` for optional OpenRouter, Ollama, and Exa configuration. Provider requests are server-side; keys are never exposed to the browser.
+See `.env.example` for optional provider, overpass.ch, limit, and site-URL configuration. Provider requests are server-side; keys are never exposed to the browser.
 
 | Variable | Purpose |
 |----------|---------|
 | `OPENROUTER_API_KEY` | Primary AI summary provider |
 | `OPENROUTER_MODEL` | OpenRouter model (default `openrouter/free`) |
+| `OPENROUTER_SITE_URL` | Site URL sent to OpenRouter as attribution metadata |
 | `OLLAMA_API_KEY` | Ollama Cloud key |
 | `OLLAMA_BASE_URL` | Local or self-hosted Ollama base URL |
 | `OLLAMA_MODEL` | Ollama model; auto-discovered if omitted |
@@ -577,10 +607,12 @@ See `.env.example` for optional OpenRouter, Ollama, and Exa configuration. Provi
 | `EXA_API_KEY` | Optional Exa grounding and final answer fallback |
 | `EXA_SEARCH_TYPE` | Exa search type (default `auto`) |
 | `EXA_NUM_RESULTS` | Grounding results per summary (default 4) |
+| `EXA_ANSWER_MODEL` | Model label recorded on Exa answers (default `exa`) |
 | `SUMMARY_RATE_LIMIT_PER_MINUTE` | Per-IP AI requests per minute (default 6) |
 | `SUMMARY_DAILY_LIMIT` | Global AI provider calls per day (default 40) |
-| `SUMMARY_PROVIDER_TIMEOUT_MS` | Per-provider timeout (default 12000) |
+| `SUMMARY_PROVIDER_TIMEOUT_MS` | Per-provider timeout (code default 7000; `.env.example` sets 12000) |
 | `SUMMARY_CACHE_TTL_MS` | AI summary cache TTL (default 6 hours) |
+| `NEXT_PUBLIC_SITE_URL` | Absolute origin for `sitemap.xml` and `robots.txt` (default `http://localhost:3000`) |
 
 ### API Rate Limits
 

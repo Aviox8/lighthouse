@@ -1,5 +1,56 @@
 # Design Decisions
 
+### 2026-11-06 — The homepage is a page; the workbench is its own route
+
+**Status**: accepted
+
+`app/page.tsx` was a client component that switched between a `Homepage`
+component and the workbench, so `/` could never be a static page and the
+landing was a second component away from the route. The split is now explicit:
+`app/page.tsx` is a static server component that renders the product homepage,
+and `app/workbench/page.tsx` is the instrument (map, results, filters,
+summary). `/?q=…` links opened the workbench in place before, so `proxy.ts`
+redirects `/?q` to `/workbench?q` to keep shared URLs working without making
+`/` dynamic. Pages own their layout; shared parts (`Navbar`, `Footer`,
+`SearchBar`, `TypesCatalog`, `StaticPage`, `MapView`) stay in `components/`.
+The closing-CTA and example-query affordances on `/` are plain links to
+`/workbench?q=…`; the hero search posts through `SearchBar` (`navigateTo`), so
+no component ever owns a page.
+
+### 2026-11-06 — HeroUI v3 everywhere; local primitives deleted
+
+**Status**: accepted
+
+The smoothui starter kit (`smooth-button`, tabs, checkbox, content-skeleton,
+popover/select/dialog/tooltip/input wrappers) and the unused shadcn
+`scroll-area` were deleted — 228 packages pruned, including `motion`,
+`class-variance-authority`, `radix-ui` and `shadcn`. HeroUI v3 now carries the
+chrome and the controls: `SearchField` (asset catalog), `ToggleButtonGroup`
+(mobile map/results/filters, role=radio single-select), `Skeleton` (summary
+loading), `Button`/`Spinner`/`Chip`/`Kbd`/`Card`/`Typography` on `/` and the
+workbench. The theme bridge in `globals.css` flattens HeroUI's rounded,
+color-first default onto the Lighthouse monochrome tokens (zero radius,
+white accent, `--radius-*`/`--field-radius` = 0). The map was brought in line:
+OSM tiles are inverted + desaturated, markers are white `L.divIcon` squares,
+and Leaflet's 4px bar/attribution radii are zeroed. Leaflet tiles stay the
+same provider — the restyle is CSS only.
+
+### 2026-11-06 — Docs IA split + complete open-source page set
+
+**Status**: accepted
+
+The single long /docs page was split into a three-page reading sequence modeled
+on MapillaryJS: /docs (architecture + query grammar), /docs/api (HTTP reference,
+error table, limits), /docs/operations (self-hosting, environment variables,
+troubleshooting). `StaticPage` gained Previous/Next pagination for that sequence
+and an "Edit this page on GitHub" link derived from the active route. The OSS
+surface was completed with /policy (acceptable use), /security (private
+vulnerability disclosure), and /contributing (workflow + asset-type recipe).
+Sidebar groups are Product / Documentation / Project / Legal; the footer is five
+columns (brand + same four groups). All new routes are wired into the navbar,
+footer, sidebar, and sitemap. Copy stays truthful: no invented maintainer
+identities, no legal entity, no security mailbox, no bounty.
+
 ### 2026-11-06 — Full monochrome conversion + open-source docs set
 
 **Status**: accepted
