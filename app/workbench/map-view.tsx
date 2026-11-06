@@ -9,9 +9,9 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
-import { ArrowUpRight } from "lucide-react";
 import { ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import "leaflet/dist/leaflet.css";
+import MapillaryPreview from "./mapillary-preview";
 import type { Asset } from "@/lib/types";
 
 /* ---------------------------------------------------------------
@@ -218,7 +218,20 @@ export default function MapView({
     if (!mapRef.current || !selectedId) return;
     const asset = filtered.find((r) => r.id === selectedId);
     if (!asset) return;
-    mapRef.current.flyTo([asset.lat, asset.lon], 14);
+    // Pad for the popup's height so it never clips the top of the map: with a
+    // street-level image the popup is ~420px tall plus the tip, and the layer
+    // switch occupies the top-right ~44px. The popup is painted inside the
+    // map's own stacking context, so it can never win against the sibling
+    // layer switch (z-index 1000) — the only correct fix is to push the
+    // selection low enough that the popup clears it. flyTo has no padding
+    // options, so express the clearance as fitBounds top padding.
+    const height = mapRef.current.getSize().y;
+    const topPadding = Math.max(0, Math.min(360, 1000 - height));
+    mapRef.current.flyToBounds(L.latLng(asset.lat, asset.lon).toBounds(1), {
+      paddingTopLeft: [0, topPadding],
+      paddingBottomRight: [0, 16],
+      maxZoom: 14,
+    });
   }, [mapRef, selectedId, filtered]);
 
   useEffect(() => {
@@ -276,16 +289,11 @@ export default function MapView({
                   <span className="separator">,&nbsp;</span>
                   {asset.lon.toFixed(4)}
                 </div>
-                <a
-                  aria-label={`Open Mapillary street-level imagery near ${asset.name}`}
-                  className="popup-streetview"
-                  href={`https://www.mapillary.com/app/?lat=${asset.lat}&lng=${asset.lon}&z=17`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Mapillary imagery
-                  <ArrowUpRight aria-hidden="true" size={11} strokeWidth={2} />
-                </a>
+                <MapillaryPreview
+                  lat={asset.lat}
+                  lon={asset.lon}
+                  name={asset.name}
+                />
               </div>
             </Popup>
           </Marker>
