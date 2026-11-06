@@ -55,7 +55,7 @@ export default function Footer() {
             <span className="footer-brand-text">Lighthouse</span>
           </div>
           <p className="footer-brand-note">
-            An open-source instrument for OpenStreetMap infrastructure data.
+            An open-source search tool for OpenStreetMap infrastructure data.
             Source on{" "}
             <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer">
               GitHub

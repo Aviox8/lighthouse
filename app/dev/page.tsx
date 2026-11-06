@@ -72,16 +72,15 @@ npm run lint && npm run typecheck && npm test && npm run build`}</CodeBlock>
           <tr>
             <td>Styling</td>
             <td>
-              Tailwind CSS v4 plus a hand-rolled monochrome design system in{" "}
-              <code>app/globals.css</code> (no UI-kit dependency for site
-              chrome)
+              Tailwind CSS v4, HeroUI v3 components, and a monochrome token
+              system in <code>app/globals.css</code>
             </td>
           </tr>
           <tr>
             <td>Map</td>
             <td>
-              Leaflet via react-leaflet — tiles from{" "}
-              <code>tile.openstreetmap.org</code>, no map-API keys
+              Leaflet via react-leaflet — OpenStreetMap streets, Esri World
+              Imagery satellite, and OpenTopoMap terrain; all keyless
             </td>
           </tr>
           <tr>

@@ -178,9 +178,10 @@ npm run build`}</CodeBlock>
       <h2>UI and copy rules</h2>
       <ul>
         <li>
-          <strong>Monochrome, zero radius, dark only.</strong> Use the tokens in{" "}
-          <code>app/globals.css</code>; no new colors, no rounded corners, no
-          decorative gradients.
+          <strong>Monochrome, zero radius, two themes.</strong> Use the tokens
+          in <code>app/globals.css</code>; the light theme overrides the same
+          tokens rather than duplicating rules. No new colours, no rounded
+          corners, no decorative gradients.
         </li>
         <li>
           <strong>State the truth.</strong> Errors name likely causes; warnings

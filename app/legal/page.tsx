@@ -70,9 +70,10 @@ export default function LegalPage() {
       <h2>Map tiles &amp; geocoding</h2>
       <ul>
         <li>
-          Map tiles are fetched from{" "}
-          <code>tile.openstreetmap.org</code>, whose use is subject to the
-          OpenStreetMap Foundation&rsquo;s public{" "}
+          Map tiles are fetched from <code>tile.openstreetmap.org</code>{" "}
+          (streets), <code>server.arcgisonline.com</code> (Esri World Imagery,
+          satellite) and <code>tile.opentopomap.org</code> (terrain). OSM tiles
+          are subject to the OpenStreetMap Foundation&rsquo;s public{" "}
           <a
             href="https://operations.osmfoundation.org/policies/tiles/"
             target="_blank"
@@ -81,6 +82,8 @@ export default function LegalPage() {
             tile usage policy
           </a>{" "}
           (per-user, bulk-like or heavy browsing is explicitly discouraged).
+          Esri and OpenTopoMap tiles carry their own attribution, shown in the
+          map corner.
         </li>
         <li>
           Geocoding runs through the public{" "}

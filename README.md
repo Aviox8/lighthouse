@@ -556,7 +556,7 @@ lib/
 ├── geo.ts                # Nominatim integration, 1 req/s throttle
 ├── overpass.ts           # Overpass queries, mirrors, 5,000-feature cap
 ├── summary.ts            # Provider chain + rate limits + caching
-├── cache.ts · search-index.ts
+├── cache.ts              # In-memory search, geo and summary caches
 └── __tests__/            # parser.ts, overpass.ts, summary.ts suites
 ```
 

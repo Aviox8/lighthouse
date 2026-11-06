@@ -5,7 +5,7 @@ import StaticPage from "@/components/StaticPage";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "What Lighthouse is, what it is not, who it serves, and the principles behind its honest-by-default design.",
+    "What Lighthouse is, what it does not do, and how it handles OpenStreetMap data.",
 };
 
 export default function AboutPage() {
@@ -90,8 +90,8 @@ export default function AboutPage() {
           bulk-scraped.
         </li>
         <li>
-          <strong>Dense, dark, fast.</strong> A monochrome instrument surface
-          built for 5,000+ markers, keyboard navigation, and reduced-motion
+          <strong>Dense, fast, monochrome.</strong> A restrained interface built
+          for large result sets, keyboard navigation, and reduced-motion
           environments.
         </li>
       </ul>

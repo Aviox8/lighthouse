@@ -11,7 +11,7 @@ import GithubIcon from "@/components/GithubIcon";
 export const metadata: Metadata = {
   title: "Physical infrastructure search",
   description:
-    "Lighthouse turns OpenStreetMap into a fast infrastructure search engine. Find telecom towers, data centers, power plants, ports and 230+ asset types by place, operator or radius — then read the map.",
+    "Search OpenStreetMap for telecom towers, data centers, power plants, ports and 230+ infrastructure types — by place, operator, or radius. Open source, no account.",
 };
 
 const SOURCE_URL = "https://github.com/Aviox8/lighthouse";
@@ -73,8 +73,8 @@ const CAPABILITIES = [
   },
   {
     index: "02 / Query",
-    title: "A grammar that gets out of the way",
-    body: "Ask in plain language or use exact tokens for type, operator, region, country, proximity and radius. Radius is in kilometres.",
+    title: "Natural language or exact tokens",
+    body: "Ask in plain language or use tokens for type, operator, region, country, proximity and radius. Radius is in kilometres.",
     href: "/docs",
     link: "Read the query grammar",
   },
@@ -125,9 +125,9 @@ export default function Page() {
             Search the world&rsquo;s physical infrastructure.
           </Typography>
           <Typography className="home-subtitle" type="body">
-            Lighthouse turns OpenStreetMap into a fast infrastructure search
-            engine. Find telecom towers, data centers, power plants, ports and
-            230+ asset types by place, operator or radius — then read the map.
+            Search OpenStreetMap for telecom towers, data centers, power
+            plants, ports and 230+ other asset types — by place, operator, or
+            radius. Results open as a map, a list, and an aggregate summary.
           </Typography>
 
           <div className="home-search-block">
@@ -220,7 +220,7 @@ export default function Page() {
           <Typography className="home-lede" type="body-sm">
             A search opens a map, a filterable result list, and an optional
             aggregate summary. Zoom into a feature, switch type or operator
-            filters, and commit a new radius without rewriting the query.
+            filters, and change the radius without retyping the query.
           </Typography>
         </div>
 
@@ -272,13 +272,13 @@ export default function Page() {
                     <path
                       d="M48 0H0V48"
                       fill="none"
-                      stroke="rgba(255,255,255,0.045)"
+                      stroke="var(--grid-faint)"
                       strokeWidth="1"
                     />
                   </pattern>
                 </defs>
                 <rect fill="url(#lighthouse-preview-grid)" height="420" width="760" />
-                <g fill="none" stroke="rgba(255,255,255,0.13)" strokeWidth="1.5">
+                <g fill="none" stroke="var(--grid-line)" strokeWidth="1.5">
                   <path d="M-40 320 C 120 280 210 300 330 250 S 560 180 800 210" />
                   <path d="M100 -20 C 140 90 190 160 250 440" />
                   <path d="M480 -20 C 500 110 540 210 590 440" />
@@ -287,16 +287,16 @@ export default function Page() {
                 <path
                   d="M300 -20 C 320 80 360 140 420 200 S 500 300 520 440"
                   fill="none"
-                  stroke="rgba(255,255,255,0.055)"
+                  stroke="var(--grid-road)"
                   strokeWidth="12"
                 />
-                <g fill="none" stroke="rgba(255,255,255,0.34)" strokeWidth="1">
+                <g fill="none" stroke="var(--grid-dot)" strokeWidth="1">
                   <circle cx="360" cy="210" r="12" />
                   <circle cx="452" cy="282" r="9" />
                   <circle cx="286" cy="150" r="8" />
                   <circle cx="540" cy="176" r="7" />
                 </g>
-                <g fill="#fff">
+                <g fill="var(--text-primary)">
                   <circle cx="360" cy="210" r="4" />
                   <circle cx="452" cy="282" r="3" />
                   <circle cx="286" cy="150" r="3" />
@@ -327,13 +327,13 @@ export default function Page() {
                 Capabilities
               </Typography>
               <Typography className="home-display" id="capabilities-title" type="h2">
-                Built for questions the map can answer.
+                The map is the database.
               </Typography>
             </div>
             <Typography className="home-lede" type="body-sm">
-              No dashboards to configure and no proprietary data layer. Point a
-              query at a place and inspect the physical infrastructure recorded
-              there.
+              No dashboard to configure, no proprietary data layer. Ask one
+              question with a place in it and read the physical infrastructure
+              recorded there.
             </Typography>
           </div>
 
