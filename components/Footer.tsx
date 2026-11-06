@@ -4,12 +4,12 @@ const SOURCE_URL = "https://github.com/Aviox8/lighthouse";
 
 const COLUMNS: {
   label: string;
-  items: { href: string; label: string; external?: boolean }[];
+  items: { href: string; label: string }[];
 }[] = [
   {
     label: "Product",
     items: [
-      { href: "/", label: "Workbench" },
+      { href: "/workbench", label: "Workbench" },
       { href: "/types", label: "Asset types" },
     ],
   },
@@ -17,15 +17,25 @@ const COLUMNS: {
     label: "Documentation",
     items: [
       { href: "/docs", label: "Documentation" },
-      { href: "/about", label: "About the project" },
+      { href: "/docs/api", label: "API reference" },
+      { href: "/docs/operations", label: "Self-hosting" },
+    ],
+  },
+  {
+    label: "Project",
+    items: [
+      { href: "/about", label: "About" },
       { href: "/dev", label: "Developer" },
+      { href: "/contributing", label: "Contributing" },
+      { href: "/security", label: "Security" },
+      { href: "/license", label: "License (MIT)" },
     ],
   },
   {
     label: "Legal",
     items: [
-      { href: "/license", label: "License (MIT)" },
       { href: "/legal", label: "Legal notices" },
+      { href: "/policy", label: "Acceptable use" },
       { href: "/terms", label: "Terms of Service" },
       { href: "/privacy", label: "Privacy policy" },
     ],
@@ -57,22 +67,11 @@ export default function Footer() {
         {COLUMNS.map((column) => (
           <div className="footer-col" key={column.label}>
             <span className="footer-col-label">{column.label}</span>
-            {column.items.map((item) =>
-              item.external ? (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {item.label}
-                </a>
-              ) : (
-                <Link key={item.href} href={item.href}>
-                  {item.label}
-                </Link>
-              ),
-            )}
+            {column.items.map((item) => (
+              <Link key={item.href} href={item.href}>
+                {item.label}
+              </Link>
+            ))}
           </div>
         ))}
 

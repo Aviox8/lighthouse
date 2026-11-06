@@ -48,8 +48,10 @@ npm run lint && npm run typecheck && npm test && npm run build`}</CodeBlock>
         Runs on Node.js 22 (the CI matrix is pinned to 22). Without any{" "}
         <code>.env</code> configuration everything works except AI summaries,
         which fall back to a deterministic local provider —{" "}
-        <Link href="/docs#environment">all environment variables</Link> are
-        optional.
+        <Link href="/docs/operations#environment-variables">
+          all environment variables
+        </Link>{" "}
+        are optional.
       </p>
 
       <h2>The stack</h2>
@@ -158,16 +160,19 @@ npm run lint && npm run typecheck && npm test && npm run build`}</CodeBlock>
 
       <h2>Project layout</h2>
       <CodeBlock title="repository tree" lang="tree">{`app/
-  page.tsx              # landing + workbench (single route, two states)
-  about/ docs/ types/ dev/ license/ legal/ terms/ privacy/
+  page.tsx              # landing page (server-rendered)
+  workbench/page.tsx    # the instrument: map, results, filters, summary
+  about/ types/ dev/ contributing/ security/
+  docs/ docs/api/ docs/operations/
+  license/ legal/ policy/ terms/ privacy/
   api/search/route.ts   # POST /api/search → parser → geo → overpass
   api/summary/route.ts  # POST /api/summary → rate limit → cache → providers
   api/nominatim/route.ts
   globals.css           # the entire design system
 components/
-  Homepage, Navbar, Footer, CTA, StaticPage, CodeBlock, TypesCatalog
+  Navbar, Footer, StaticPage, CodeBlock, SearchBar, TypesCatalog
   MapView, Filters, ResultList, SummaryCard (workbench panels)
-  smoothui/            # local primitives (button, input, tabs, …)
+  GithubIcon
 lib/
   types.ts              # ASSET_TYPE_MAP — every queryable asset type
   parser.ts             # query grammar: phrases + type:/operator:/… tokens
@@ -230,6 +235,12 @@ lib/__tests__/          # parser / overpass / summary suites`}</CodeBlock>
           corners, no carousel.
         </li>
       </ul>
+      <p>
+        The full workflow, asset-type recipe, and pull-request checklist are on{" "}
+        <Link href="/contributing">Contributing</Link>. Report vulnerabilities
+        through the private process on <Link href="/security">Security</Link>,
+        not the public tracker.
+      </p>
 
       <h2>Reporting problems</h2>
       <p>

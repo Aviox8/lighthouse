@@ -10,7 +10,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 /**
- * Shared docs-shell for every static page: landing chrome (Navbar + Footer),
+ * Shared docs-shell for every content page: landing chrome (Navbar + Footer),
  * a sticky site sidebar, and the article column. Headings (h2) in the page
  * content are automatically given ids and mirrored into an
  * "On this page" table of contents.
@@ -33,13 +33,17 @@ const SITE_SECTIONS: SiteSection[] = [
     label: "Documentation",
     items: [
       { href: "/docs", label: "Documentation" },
-      { href: "/about", label: "About the project" },
+      { href: "/docs/api", label: "API reference" },
+      { href: "/docs/operations", label: "Self-hosting" },
     ],
   },
   {
     label: "Project",
     items: [
+      { href: "/about", label: "About the project" },
       { href: "/dev", label: "Developer" },
+      { href: "/contributing", label: "Contributing" },
+      { href: "/security", label: "Security" },
       { href: "/license", label: "License" },
     ],
   },
@@ -47,11 +51,21 @@ const SITE_SECTIONS: SiteSection[] = [
     label: "Legal",
     items: [
       { href: "/legal", label: "Legal notices" },
+      { href: "/policy", label: "Acceptable use" },
       { href: "/terms", label: "Terms of Service" },
       { href: "/privacy", label: "Privacy policy" },
     ],
   },
 ];
+
+/** Docs pages paginate in reading order (Mapillary-style Previous/Next). */
+const DOC_SEQUENCE = [
+  { href: "/docs", label: "Documentation" },
+  { href: "/docs/api", label: "API reference" },
+  { href: "/docs/operations", label: "Self-hosting & operations" },
+];
+
+const REPO_URL = "https://github.com/Aviox8/lighthouse";
 
 export interface StaticPageProps {
   /** Small uppercase label above the title. */
@@ -141,6 +155,16 @@ export default function StaticPage({
 }: StaticPageProps) {
   const { headings, content } = transformHeadings(children);
 
+  const docIndex = DOC_SEQUENCE.findIndex((page) => page.href === active);
+  const prevPage = docIndex > 0 ? DOC_SEQUENCE[docIndex - 1] : null;
+  const nextPage =
+    docIndex >= 0 && docIndex < DOC_SEQUENCE.length - 1
+      ? DOC_SEQUENCE[docIndex + 1]
+      : null;
+
+  const sourcePath =
+    active === "/" ? "app/page.tsx" : `app${active}/page.tsx`;
+
   return (
     <div className="static-shell">
       <a href="#main-content" className="skip-link">
@@ -202,6 +226,38 @@ export default function StaticPage({
               <p className="static-updated">Last updated · {updated}</p>
             ) : null}
             {content}
+
+            <footer className="doc-edit">
+              <a
+                href={`${REPO_URL}/blob/main/${sourcePath}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Edit this page on GitHub
+              </a>
+            </footer>
+
+            {(prevPage || nextPage) && (
+              <nav className="doc-pager" aria-label="Documentation">
+                {prevPage ? (
+                  <Link className="doc-pager-link" href={prevPage.href}>
+                    <span className="doc-pager-label">Previous</span>
+                    <span className="doc-pager-title">{prevPage.label}</span>
+                  </Link>
+                ) : (
+                  <span />
+                )}
+                {nextPage ? (
+                  <Link
+                    className="doc-pager-link next"
+                    href={nextPage.href}
+                  >
+                    <span className="doc-pager-label">Next</span>
+                    <span className="doc-pager-title">{nextPage.label}</span>
+                  </Link>
+                ) : null}
+              </nav>
+            )}
           </article>
         </div>
       </main>

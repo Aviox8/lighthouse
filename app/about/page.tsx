@@ -49,8 +49,8 @@ export default function AboutPage() {
         </li>
         <li>
           Not a bulk-extraction service. Queries are capped at 5,000 features
-          by design — see the <Link href="/legal">legal notices</Link> for the
-          acceptable-use policy that keeps this sustainable.
+          by design — see the <Link href="/policy">acceptable use policy</Link>{" "}
+          for the rules that keep this sustainable.
         </li>
       </ul>
 

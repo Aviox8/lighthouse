@@ -161,7 +161,10 @@ export default function PrivacyPage() {
         (remove the tag), no providers (unset the keys — the local summary is
         the default), and your own Overpass/Nominatim endpoints if you want to
         remove even upstream OSM services from the equation. See the{" "}
-        <Link href="/docs#environment">environment reference</Link>.
+        <Link href="/docs/operations#environment-variables">
+          environment reference
+        </Link>
+        .
       </p>
 
       <h2>Data retention</h2>

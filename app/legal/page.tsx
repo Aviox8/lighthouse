@@ -155,8 +155,9 @@ export default function LegalPage() {
         </li>
       </ul>
       <p>
-        The longer-form contract is the{" "}
-        <Link href="/terms">Terms of Service</Link>.
+        The operational rules are spelled out in the{" "}
+        <Link href="/policy">acceptable use policy</Link>; the longer-form
+        contract is the <Link href="/terms">Terms of Service</Link>.
       </p>
 
       <h2>Contact</h2>

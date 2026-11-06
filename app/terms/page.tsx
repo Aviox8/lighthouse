@@ -43,7 +43,7 @@ export default function TermsPage() {
           Do not attempt to reconstruct a regional or national asset database
           through the interface. For that, use OSM extracts or your own
           Overpass instance — see the{" "}
-          <Link href="/legal">legal notices</Link>.
+          <Link href="/policy">acceptable use policy</Link>.
         </li>
         <li>
           Do not interfere with the operation of the service or the upstream
@@ -82,9 +82,8 @@ export default function TermsPage() {
         There is no SLA. Upstreams (public Overpass mirrors, Nominatim) are
         shared infrastructure and fail or throttle at times; errors surface
         honestly when they do. The service can change or be suspended at any
-        time, without notice. Self-hosting{" "}
-        <Link href="/docs#self-hosting">removes this dependency
-        entirely</Link>.
+        time, without notice. <Link href="/docs/operations">Self-hosting</Link>{" "}
+        removes this dependency entirely.
       </p>
 
       <h2>6. Liability</h2>
