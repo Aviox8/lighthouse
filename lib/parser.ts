@@ -217,7 +217,7 @@ const TYPE_PATTERNS = [
 ];
 
 const NEAR_PATTERN = /\bnear\s+(.+?)(?:\s+(?:in|within|radius)|$)/i;
-const IN_PATTERN = /\bin\s+(.+?)(?:\s+(?:near|within)|$)/i;
+const IN_PATTERN = /\bin\s+(.+?)(?:\s+(?:near|within|radius)|$)/i;
 const RADIUS_PATTERN = /(?:within|radius)\s*[:=]?\s*(\d+)\s*(?:km|kilometers?|kilometres?)?/i;
 
 function escapeRegExp(value: string): string {
@@ -275,6 +275,27 @@ function parseStructured(query: string): ParsedQuery {
   const radiusMatch = query.match(/radius:(\d+)/i);
   if (radiusMatch) {
     result.radius = Math.min(parseInt(radiusMatch[1], 10), 500);
+  }
+
+  // Structured tokens are not the whole grammar: accept free text like
+  // "type:hospital in berlin" or "type:port near Rotterdam" by reading the
+  // geographic scope from what remains after the tokens.
+  const remainder = query
+    .replace(/(?:type|operator|region|country|near|radius):[^\s]+/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (remainder) {
+    const remainderRadius = remainder.match(RADIUS_PATTERN);
+    if (remainderRadius) {
+      result.radius = Math.min(parseInt(remainderRadius[1], 10), 500);
+    }
+    const locationSource = remainderRadius
+      ? remainder.replace(RADIUS_PATTERN, ' ')
+      : remainder;
+    const location = extractLocation(locationSource);
+    if (!result.region && location.region) result.region = location.region;
+    if (!result.near && location.near) result.near = location.near;
   }
 
   return result;

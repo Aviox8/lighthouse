@@ -47,3 +47,41 @@ describe('validateQuery', () => {
     expect(validateQuery(parseQuery('in dubai')).valid).toBe(false);
   });
 });
+
+describe('structured queries with free-text scope', () => {
+  it('reads the geographic scope out of the token remainder', () => {
+    const parsed = parseQuery('type:substation in New York radius:80');
+    expect(parsed.type).toBe('substation');
+    expect(parsed.region).toBe('New York');
+    expect(parsed.radius).toBe(80);
+    expect(validateQuery(parsed).valid).toBe(true);
+  });
+
+  it('supports natural "in" phrases without structured radius', () => {
+    const parsed = parseQuery('type:hospital in mumbai');
+    expect(parsed.type).toBe('hospital');
+    expect(parsed.region).toBe('mumbai');
+    expect(validateQuery(parsed).valid).toBe(true);
+  });
+
+  it('honours near phrases and "within" radius in mixed queries', () => {
+    const parsed = parseQuery('type:port near Rotterdam within 30');
+    expect(parsed.near).toBe('Rotterdam');
+    expect(parsed.radius).toBe(30);
+    expect(validateQuery(parsed).valid).toBe(true);
+  });
+
+  it('keeps structured tokens when the remainder is empty', () => {
+    const parsed = parseQuery('type:airport region:california country:usa radius:150');
+    expect(parsed.region).toBe('california');
+    expect(parsed.country).toBe('usa');
+    expect(parsed.radius).toBe(150);
+    expect(validateQuery(parsed).valid).toBe(true);
+  });
+
+  it('does not over-capture "radius" into the region', () => {
+    const parsed = parseQuery('towers in london radius:40');
+    expect(parsed.region).toBe('london');
+    expect(parsed.radius).toBe(40);
+  });
+});
