@@ -1,5 +1,17 @@
 # Design Decisions
 
+### 2026-11-06 — OSM tiles back to native colour; structured queries honour free-text scope
+
+**Status**: accepted (supersedes the tile-filter half of "Floating sharp navbar; OSM tiles stay, filter fixed")
+
+The CSS inversion (`grayscale(1) invert(1) …`) rendered the OSM map near-black and the user asked for the map to remain colourful, untouched in every other respect. The filter is deleted — tiles render in their native OpenStreetMap colours; the Leaflet → Nominatim → Overpass → OSM flow is unchanged. The "map is not working" defect turned out to live in `/api/search`, not in the tile layer: `parseStructured` ignored free-text scope, so documented examples such as `type:substation in New York radius:80` (used in `/docs`, `/docs/operations` and on the homepage) failed validation with "Query must specify a geographic scope". The structured parser now strips `token:` spans and runs `extractLocation` (and `RADIUS_PATTERN`) on the remainder, accepting both structured and natural scope in one query; `IN_PATTERN` also stops at `radius` so "towers in london radius:40" no longer swallows the radius into the region. Covered by five new parser tests.
+
+### 2026-11-06 — Navbar renders in normal flow; it never overlaps content
+
+**Status**: accepted (supersedes `position: sticky` in "Floating sharp navbar")
+
+`position: sticky` + a translucent, blurred background meant scrolled content passed behind the bar on `/` and on the docs pages (`.home` and `.static-shell` are the scroll containers). Per the user's requirement the navbar now renders in normal flow (`position: static`, same 12px margins, 1px border, drop shadow, zero radius) — nothing ever overlaps it. Trade-off: it is no longer pinned while scrolling. If a pinned bar is reintroduced, it must be fully opaque and this note revisited.
+
 ### 2026-11-06 — Floating sharp navbar; OSM tiles stay, filter fixed
 
 **Status**: accepted
