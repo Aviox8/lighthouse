@@ -6,6 +6,7 @@ const LAST_MODIFIED = new Date("2026-11-06");
 
 const ROUTES = [
   "",
+  "/workbench",
   "/types",
   "/docs",
   "/docs/api",

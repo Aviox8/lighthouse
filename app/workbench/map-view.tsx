@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -47,7 +47,7 @@ function FitBoundsOnMount({
       );
       map.fitBounds(group.getBounds().pad(0.15));
     }
-  }, [map, bounds, results.length]);
+  }, [map, bounds, results]);
   return null;
 }
 
@@ -72,11 +72,13 @@ export default function MapView({
 }: MapViewProps) {
   const mapRef = useRef<L.Map | null>(null);
 
-  const filtered = results.filter((r) => {
-    if (filterType && r.type !== filterType) return false;
-    if (filterOperator && r.operator !== filterOperator) return false;
-    return true;
-  });
+  const filtered = useMemo(() => {
+    return results.filter((r) => {
+      if (filterType && r.type !== filterType) return false;
+      if (filterOperator && r.operator !== filterOperator) return false;
+      return true;
+    });
+  }, [results, filterOperator, filterType]);
 
   const highlightSelected = useCallback(() => {
     if (!mapRef.current || !selectedId) return;
