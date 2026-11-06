@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpRight, Menu, X } from "lucide-react";
+import { ArrowUpRight, Menu, Moon, Sun, X } from "lucide-react";
 import { Button } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import GithubIcon from "@/components/GithubIcon";
@@ -24,10 +24,61 @@ function isActive(pathname: string, href: string) {
   return pathname === href;
 }
 
-/** Site navigation: wordmark, product links, GitHub CTA, mobile drawer. */
+type Theme = "dark" | "light";
+
+const THEME_STORAGE_KEY = "lighthouse-theme";
+const THEME_EVENT = "lighthouse-theme-change";
+
+/** Stamp the theme on <html>; tokens and the `.dark` HeroUI variant follow. */
+function applyTheme(theme: Theme) {
+  const root = document.documentElement;
+  root.dataset.theme = theme;
+  root.classList.toggle("dark", theme === "dark");
+}
+
+function getThemeSnapshot(): Theme {
+  return document.documentElement.dataset.theme === "light" ? "light" : "dark";
+}
+
+function getServerThemeSnapshot(): Theme {
+  return "dark";
+}
+
+/** The toggle is the only writer; a custom event keeps every Navbar in sync. */
+function subscribeTheme(onChange: () => void) {
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== THEME_STORAGE_KEY) return;
+    applyTheme(event.newValue === "light" ? "light" : "dark");
+    onChange();
+  };
+  window.addEventListener(THEME_EVENT, onChange);
+  window.addEventListener("storage", handleStorage);
+  return () => {
+    window.removeEventListener(THEME_EVENT, onChange);
+    window.removeEventListener("storage", handleStorage);
+  };
+}
+
+/** Site navigation: wordmark, product links, theme toggle, GitHub CTA, mobile drawer. */
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const theme = useSyncExternalStore(
+    subscribeTheme,
+    getThemeSnapshot,
+    getServerThemeSnapshot,
+  );
   const pathname = usePathname();
+
+  const toggleTheme = () => {
+    const next = getThemeSnapshot() === "light" ? "dark" : "light";
+    applyTheme(next);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      // Storage may be unavailable (private mode); the toggle still works for the session.
+    }
+    window.dispatchEvent(new Event(THEME_EVENT));
+  };
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -67,6 +118,22 @@ export default function Navbar() {
         </div>
 
         <div className="navbar-actions">
+          <Button
+            aria-label={
+              theme === "light" ? "Switch to dark theme" : "Switch to light theme"
+            }
+            className="navbar-theme-toggle"
+            isIconOnly
+            onPress={toggleTheme}
+            size="sm"
+            variant="secondary"
+          >
+            {theme === "light" ? (
+              <Moon aria-hidden="true" size={16} strokeWidth={2} />
+            ) : (
+              <Sun aria-hidden="true" size={16} strokeWidth={2} />
+            )}
+          </Button>
           <a
             className={`${buttonVariants({ variant: "primary", size: "sm" })} navbar-github`}
             href={SOURCE_URL}
@@ -114,6 +181,18 @@ export default function Navbar() {
             <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
           </Link>
         ))}
+        <Button
+          className="navbar-drawer-theme"
+          onPress={toggleTheme}
+          variant="secondary"
+        >
+          {theme === "light" ? (
+            <Moon aria-hidden="true" size={16} strokeWidth={2} />
+          ) : (
+            <Sun aria-hidden="true" size={16} strokeWidth={2} />
+          )}
+          Switch to {theme === "light" ? "dark" : "light"} theme
+        </Button>
         <a
           className={`${buttonVariants({ variant: "primary", size: "md" })} navbar-drawer-github`}
           href={SOURCE_URL}

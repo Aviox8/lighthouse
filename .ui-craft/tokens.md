@@ -1,13 +1,27 @@
 # Design Tokens
 
 ## Colors
+
+The same semantic tokens resolve differently under `data-theme="dark"` (the
+default) and `data-theme="light"`. Components consume tokens only; map tiles
+and marker badges are intentionally exempt.
+
+### Dark
 - Accent: #fff (hover/active identical); soft wash rgba(255,255,255,.08); on-accent text #000
 - Surfaces: #000 (bg), #0a0a0a (panels/elevated), #141414 (raised/inputs), #1a1a1a (hover)
 - Borders: #2a2a2a (primary), #1a1a1a (hairline/secondary), #3a3a3a (strong/hover)
 - Text: #fff (primary), rgba(255,255,255,.6) (secondary), rgba(255,255,255,.55) (muted)
 - Semantic: info/success/error/warning are all #fff with rgba(255,255,255,.08) soft
   washes — severity is communicated by copy and context, never by hue
-- Selection: rgba(255,255,255,.2)
+- Selection: rgba(255,255,255,.22); nav shadow rgba(0,0,0,.55)
+
+### Light
+- Accent: #000; on-accent text #fff; soft wash rgba(0,0,0,.07)
+- Surfaces: #fff (bg), #f5f5f7 (panels), #e9e9ee (raised/inputs), #eeeef2 (hover)
+- Borders: #d7d7dc (primary), #e6e6ea (hairline/secondary), #c0c0c8 (strong/hover)
+- Text: #1d1d1f (primary), rgba(29,29,31,.64) (secondary), rgba(29,29,31,.5) (muted)
+- Semantic: all collapse to #000 with rgba(0,0,0,.06) soft washes
+- Selection: rgba(0,0,0,.15); nav shadow rgba(0,0,0,.08)
 
 ## Typography
 - UI: Inter (next/font, --font-sans), 14px body, 13–13.5px controls, 10–11px mono labels

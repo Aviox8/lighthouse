@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s — Lighthouse",
   },
   description:
-    "Map real-world infrastructure from OpenStreetMap with AI-assisted aggregate summaries.",
+    "Search OpenStreetMap infrastructure by place, type, or operator. 230+ asset types, an interactive map, and aggregate summaries. Open source, no account.",
   applicationName: "Lighthouse",
   robots: "index, follow",
   appleWebApp: {
@@ -35,7 +35,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#000000",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+  ],
 };
 
 export default function RootLayout({
@@ -48,8 +51,14 @@ export default function RootLayout({
       lang="en"
       className={`dark ${inter.variable} ${jetbrainsMono.variable}`}
       data-theme="dark"
+      suppressHydrationWarning
     >
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("lighthouse-theme");var d=t!=="light";document.documentElement.dataset.theme=d?"dark":"light";document.documentElement.classList.toggle("dark",d);}catch(e){}})();`,
+          }}
+        />
         <link
           rel="preconnect"
           href="https://tile.openstreetmap.org"
@@ -61,7 +70,7 @@ export default function RootLayout({
           href="https://overpass-api.de"
         />
       </head>
-      <body className="bg-background text-foreground">
+      <body className="bg-background text-foreground" suppressHydrationWarning>
         {children}
         <Analytics />
       </body>

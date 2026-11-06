@@ -462,6 +462,7 @@ function WorkbenchContent() {
             filterOperator={filterOperator}
             filterType={filterType}
             loading={loading}
+            radiusKm={searchResult?.query?.near ? searchResult.query.radius : null}
           />
         </div>
       </main>
