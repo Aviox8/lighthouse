@@ -55,11 +55,6 @@ export default function RootLayout({
           href="https://tile.openstreetmap.org"
           crossOrigin="anonymous"
         />
-        <link
-          rel="preconnect"
-          href="https://server.arcgisonline.com"
-          crossOrigin="anonymous"
-        />
         <link rel="preconnect" href="https://nominatim.openstreetmap.org" />
         <link
           rel="dns-prefetch"

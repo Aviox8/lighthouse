@@ -376,22 +376,24 @@ body {
 
 .navbar {
   position: sticky;
-  top: 0;
+  top: 12px;
   z-index: 100;
-  background: rgba(0, 0, 0, 0.9);
-  border-bottom: 1px solid var(--border-secondary);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  width: calc(100% - 32px);
+  max-width: 1280px;
+  margin: 12px auto;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--border-primary);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
 }
 
 .navbar-inner {
   display: flex;
   align-items: center;
   gap: 30px;
-  min-height: 64px;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 clamp(20px, 5vw, 64px);
+  min-height: 60px;
+  padding: 0 14px;
 }
 
 .navbar-brand {
@@ -1572,7 +1574,7 @@ body {
 /* OSM's standard tiles are colorful and light; invert + desaturate them for
    the dark, monochrome workbench without changing tile providers. */
 .leaflet-tile-pane {
-  filter: grayscale(1) invert(1) brightness(0.78) contrast(1.12);
+  filter: grayscale(1) invert(1) contrast(1.5) brightness(1.45);
 }
 
 .leaflet-bar,

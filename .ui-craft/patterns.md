@@ -26,6 +26,15 @@ align in columns.
 
 **Constraints**: Never set long prose in mono; mono is for machine-shaped tokens.
 
+## Pattern: Floating Sharp Navbar
+
+**Description**: The site navbar is a floating bar, not a full-width strip:
+`position: sticky; top: 12px; margin: 12px auto; width: calc(100% - 32px); max-width: 1280px`, 1px border, translucent black + backdrop blur, zero radius. All four edges have a 12px gap (or the navbar overlaps content when scrolled, staying 12px below the container top). Radius stays 0 — never pill the navbar; it breaks the monochrome sharp language everywhere else.
+
+**Usage**: `components/Navbar.tsx` + `.navbar*` CSS; every route gets it via its page shell (`.home`, `.static-shell`, `.app-container`).
+
+**Constraints**: Never full-bleed it, never round it. The gap, border and blur are the entire treatment.
+
 ## Pattern: Aggregate-only Summary Card
 
 **Description**: The AI summary sits above results as a bordered card: provider

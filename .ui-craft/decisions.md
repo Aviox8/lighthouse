@@ -1,5 +1,23 @@
 # Design Decisions
 
+### 2026-11-06 — Floating sharp navbar; OSM tiles stay, filter fixed
+
+**Status**: accepted
+
+The navbar detached from the page edges: `position: sticky; top: 12px; width:
+calc(100% - 32px); max-width: 1280px; margin: 12px auto`, a 1px border (#2a2a2a),
+translucent black (0.8) + `backdrop-filter` blur(18px) and a soft drop shadow.
+It floats over content on every route — homepage, workbench, docs — and keeps
+**zero rounded corners**: no pill treatment anywhere. A pill navbar was
+considered and rejected because the whole system is sharp-edged (the user
+scoped zero-radius to "everywhere, not just the navbar"). The map stays on
+OpenStreetMap's standard raster tiles (no third-party tile provider, no API
+keys — CARTO's dark basemap requires a key since 2026-09-25 and its public
+keyless endpoint now serves only an "API KEY REQUIRED" notice); the
+invisibility fix was the CSS `filter`: `grayscale(1) invert(1) contrast(1.5)
+brightness(1.45)` makes roads readable on a near-black landmass. The stale
+ArcGIS preconnect was removed from the root layout.
+
 ### 2026-11-06 — The homepage is a page; the workbench is its own route
 
 **Status**: accepted
