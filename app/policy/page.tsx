@@ -95,7 +95,8 @@ export default function PolicyPage() {
         </li>
         <li>
           <strong>Attribution removal.</strong> Do not strip the OpenStreetMap
-          attribution or ODbL notice from reused data.
+          attribution, ODbL notice, or Mapillary imagery credit from reused
+          data.
         </li>
       </ul>
 
@@ -167,6 +168,21 @@ export default function PolicyPage() {
             </td>
           </tr>
           <tr>
+            <td>Mapillary</td>
+            <td>
+              Street-level previews request only the selected asset&rsquo;s
+              coordinates, one lookup per opened popup. Subject to{" "}
+              <a
+                href="https://www.mapillary.com/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Mapillary&rsquo;s terms
+              </a>
+              ; do not use the helper to harvest imagery or enumerate coverage.
+            </td>
+          </tr>
+          <tr>
             <td>AI providers</td>
             <td>
               Provider calls are capped per IP and per instance. Do not use the
@@ -187,6 +203,11 @@ export default function PolicyPage() {
           <strong>AI summaries:</strong> 6 requests per IP per minute, 40
           provider calls per day per instance. Exceeding a limit returns a local
           summary, not an error — the cap protects provider quota, not the data.
+        </li>
+        <li>
+          <strong>Street-level previews:</strong> one Mapillary lookup per
+          opened popup, cached in memory for five minutes. The helper is for
+          interactive viewing, not coverage enumeration.
         </li>
         <li>
           <strong>Upstream response:</strong> Overpass may return{" "}

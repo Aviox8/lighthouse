@@ -6,7 +6,7 @@ import CodeBlock from "@/components/CodeBlock";
 export const metadata: Metadata = {
   title: "API reference",
   description:
-    "HTTP reference for Lighthouse: POST /api/search, POST /api/summary, authentication, error codes, rate limits, and caching.",
+    "HTTP reference for Lighthouse: POST /api/search, POST /api/summary, the Mapillary preview helper, authentication, error codes, rate limits, and caching.",
 };
 
 export default function ApiDocsPage() {
@@ -18,18 +18,24 @@ export default function ApiDocsPage() {
       active="/docs/api"
     >
       <p>
-        Lighthouse exposes two JSON endpoints, both <code>POST</code>-only. They
-        power the workbench, but the contract is stable enough to script against
-        — subject to the <Link href="/policy">acceptable use policy</Link>.
+        Lighthouse exposes two stable JSON endpoints, both{" "}
+        <code>POST</code>-only: search and summary. They power the workbench,
+        but the contract is
+        stable enough to script against — subject to the{" "}
+        <Link href="/policy">acceptable use policy</Link>. The workbench also
+        calls two internal <code>GET</code> helpers,{" "}
+        <code>/api/nominatim</code> and <code>/api/mapillary</code>; they exist
+        for the UI and are best-effort rather than a compatibility promise.
       </p>
 
       <h2>Authentication</h2>
       <p>
         <strong>None.</strong> The public instance has no accounts, no tokens,
-        and no keys to obtain. Provider keys (OpenRouter, Ollama, Exa) are
-        server-side configuration used only by{" "}
-        <Link href="/docs/operations">self-hosted deployments</Link> and never
-        reach the browser.
+        and no keys to obtain. Provider keys (OpenRouter, Ollama, Exa) and the
+        optional <code>MAPILLARY_TOKEN</code> are server-side configuration used
+        by the deployment and never reach the browser. Self-hosters can add
+        them as described in{" "}
+        <Link href="/docs/operations">self-hosting</Link>.
       </p>
       <div className="doc-callout">
         <p>
@@ -120,6 +126,61 @@ Content-Type: application/json
         </li>
       </ul>
 
+      <h2>GET /api/mapillary</h2>
+      <p>
+        Internal helper used by marker popups. Given a coordinate, it returns
+        the nearest Mapillary image within 500 m, or a fallback deep link. It is
+        reachable on the deployed instance, but treat it as a UI helper rather
+        than part of the stable API.
+      </p>
+      <CodeBlock title="request / response" lang="json">{`GET /api/mapillary?lat=52.52&lon=13.405
+
+200 OK — token configured, image found
+{
+  "configured": true,
+  "status": "ok",
+  "image": {
+    "id": "…",
+    "capturedAt": "2021-05-03T00:00:00.000Z",
+    "compassAngle": 182.4,
+    "thumbUrl": "https://…/thumb-1024.jpg",
+    "previewUrl": "https://…/thumb-256.jpg",
+    "isPano": false,
+    "lat": 52.5204,
+    "lon": 13.4053,
+    "distanceMeters": 42
+  },
+  "fallbackUrl": "https://www.mapillary.com/app/?lat=52.52&lng=13.405&z=17"
+}
+
+200 OK — no token, no nearby image, or upstream failure
+{ "configured": false, "status": "not_configured", "image": null,
+  "fallbackUrl": "…" }`}</CodeBlock>
+      <ul>
+        <li>
+          <code>configured</code> reflects whether the server has{" "}
+          <code>MAPILLARY_TOKEN</code>. <code>status</code> is{" "}
+          <code>ok</code>, <code>not_configured</code>, <code>empty</code>, or{" "}
+          <code>unavailable</code>.
+        </li>
+        <li>
+          Lookups use a bbox smaller than 0.01 square degrees, inspect at most
+          25 candidates, and keep the nearest image within 500 m. Results are
+          cached in memory for five minutes; failures are cached for 45 seconds.
+        </li>
+        <li>
+          The upstream call has a 5-second timeout. Missing tokens, empty
+          coverage, and Mapillary outages all return <code>200</code> with a
+          fallback URL, so a popup degrades to an external link instead of
+          surfacing an error.
+        </li>
+        <li>
+          Thumbnail URLs are signed and short-lived. The browser fetches them
+          directly from Mapillary; the access token appears in neither the
+          response nor the page.
+        </li>
+      </ul>
+
       <h2>Errors</h2>
       <p>
         Search errors use a stable shape with a machine-readable{" "}
@@ -200,11 +261,21 @@ Content-Type: application/json
           </tr>
           <tr>
             <td>
+              <code>INVALID_COORDINATES</code>
+            </td>
+            <td>400</td>
+            <td>
+              <code>/api/mapillary</code> received a missing or out-of-range{" "}
+              <code>lat</code> / <code>lon</code>.
+            </td>
+          </tr>
+          <tr>
+            <td>
               <code>METHOD_NOT_ALLOWED</code>
             </td>
             <td>405</td>
             <td>
-              <code>GET /api/search</code>; both endpoints are POST-only.
+              <code>GET /api/search</code>; search and summary are POST-only.
             </td>
           </tr>
         </tbody>
@@ -239,6 +310,11 @@ Content-Type: application/json
         <li>
           <strong>Summary cache:</strong> in-memory, 6h TTL by default, keyed by
           the stats payload. Local summaries are never cached.
+        </li>
+        <li>
+          <strong>Mapillary lookups:</strong> in-memory, 5-minute TTL keyed by
+          coordinate rounded to four decimals; failures are cached for 45
+          seconds. One upstream request per uncached popup.
         </li>
         <li>
           <strong>Overpass:</strong> 5,000-feature cap per query; 10s timeout per

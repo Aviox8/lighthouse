@@ -47,7 +47,8 @@ npm run lint && npm run typecheck && npm test && npm run build`}</CodeBlock>
       <p>
         Runs on Node.js 22 (the CI matrix is pinned to 22). Without any{" "}
         <code>.env</code> configuration everything works except AI summaries,
-        which fall back to a deterministic local provider —{" "}
+        which fall back to a deterministic local provider, and inline Mapillary
+        previews, which fall back to external links —{" "}
         <Link href="/docs/operations#environment-variables">
           all environment variables
         </Link>{" "}

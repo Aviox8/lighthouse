@@ -92,6 +92,14 @@ export default function Footer() {
               rel="noopener noreferrer"
             >
               Nominatim
+            </a>{" "}
+            · Imagery ©{" "}
+            <a
+              href="https://www.mapillary.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Mapillary
             </a>
           </div>
           <div className="footer-links">

@@ -65,6 +65,13 @@ export default function DocsPage() {
           individual assets. The complete payload is documented in the{" "}
           <Link href="/docs/api">API reference</Link>.
         </li>
+        <li>
+          <strong>mapillary.ts</strong> — optional. Given an asset coordinate,
+          the <code>/api/mapillary</code> helper asks Mapillary for the nearest
+          image inside a small bbox, picks the closest result, and returns its
+          metadata plus signed thumbnail URLs. Lookups are cached in memory for
+          five minutes. The token never reaches the browser.
+        </li>
       </ul>
 
       <h2>Map</h2>
@@ -90,9 +97,13 @@ export default function DocsPage() {
           family; selecting a result from the list recentres the map.
         </li>
         <li>
-          <strong>Street level</strong> — the marker popup links to Mapillary at
-          the asset&rsquo;s coordinates. The link opens without an account or
-          token; Lighthouse does not proxy Mapillary imagery.
+          <strong>Street level</strong> — when the deployment has a{" "}
+          <code>MAPILLARY_TOKEN</code>, opening a marker popup fetches the
+          nearest image within 500 m and shows its thumbnail, capture date, and
+          distance. Thumbnails load from Mapillary&rsquo;s CDN; the imagery API
+          call is server-side. Without a token the popup links to Mapillary at
+          the asset&rsquo;s coordinates instead — nothing breaks, and the link
+          needs no account.
         </li>
       </ul>
 

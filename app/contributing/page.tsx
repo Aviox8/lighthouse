@@ -178,10 +178,11 @@ npm run build`}</CodeBlock>
       <h2>UI and copy rules</h2>
       <ul>
         <li>
-          <strong>Monochrome, zero radius, two themes.</strong> Use the tokens
-          in <code>app/globals.css</code>; the light theme overrides the same
-          tokens rather than duplicating rules. No new colours, no rounded
-          corners, no decorative gradients.
+          <strong>Monochrome, 6/8/12px radii, two themes.</strong> Use the
+          tokens in <code>app/globals.css</code>; the light theme overrides the
+          same tokens rather than duplicating rules. No new colours, no pill
+          controls, no decorative gradients. Use the existing radius tiers
+          instead of ad-hoc corner values.
         </li>
         <li>
           <strong>State the truth.</strong> Errors name likely causes; warnings

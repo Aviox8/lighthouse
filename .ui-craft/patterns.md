@@ -26,13 +26,13 @@ align in columns.
 
 **Constraints**: Never set long prose in mono; mono is for machine-shaped tokens.
 
-## Pattern: In-flow Sharp Navbar
+## Pattern: In-flow Navbar
 
-**Description**: The site navbar is a sharp bar with 12px margins, a 1px border, zero radius and a drop shadow. It renders **in normal flow** (`position: static`) — page content never scrolls beneath or behind it. Radius stays 0 — never pill the navbar; it breaks the monochrome sharp language everywhere else. Never re-introduce `position: sticky` + translucent/blurred background; content would pass behind it.
+**Description**: The site navbar is a bordered bar with 12px margins, a 12px radius and a drop shadow. It renders **in normal flow** (`position: static`) — page content never scrolls beneath or behind it. The radius matches the panel tier; it never becomes a pill. Never re-introduce `position: sticky` + translucent/blurred background; content would pass behind it.
 
 **Usage**: `components/Navbar.tsx` + `.navbar*` CSS; every route gets it via its page shell (`.home`, `.static-shell`, `.app-container`).
 
-**Constraints**: Never full-bleed it, never round it, never make it overlapping. The gap, border and shadow are the entire treatment.
+**Constraints**: Never full-bleed it, never pill it, never make it overlapping. The gap, border, 12px radius and shadow are the entire treatment.
 
 ## Pattern: Aggregate-only Summary Card
 
@@ -69,22 +69,42 @@ generated — do not hardcode ids in page content. New routes must be added to
 `SITE_SECTIONS`, the footer columns, `app/sitemap.ts`, and `DOC_SEQUENCE` if
 they belong in the docs reading order.
 
-## Pattern: HeroUI Zero-radius Monochrome
+## Pattern: HeroUI Monochrome Token Bridge
 
 **Description**: HeroUI v3 ships a rounded, color-first default theme; the app
-flattens it onto Lighthouse tokens in `globals.css` (`--background`/`--surface`/
-`--field-*`/`--accent`, `--radius-*` and `--field-radius` = 0, shadows off) and
-imports `@heroui/styles` after `tailwindcss`. Components inherit the system; the
-only bespoke CSS on top is layout and rhythm.
+flattens it onto Lighthouse tokens in `globals.css`
+(`--background`/`--surface`/`--field-*`/`--accent`, shadows off) and imports
+`@heroui/styles` after `tailwindcss`. Radius follows the site scale: HeroUI's
+`rounded-3xl` buttons resolve to `--radius-3xl` (8px), `rounded-field` fields to
+`--field-radius` (8px), and `rounded-2xl` chips to `--radius-2xl` (8px).
+Components inherit the system; the only bespoke CSS on top is layout and rhythm.
 
 **Usage**: `SearchField` (/types filter), `ToggleButtonGroup` (mobile workbench
-panels), `Skeleton` (summary loading), `Button`, `Chip`, `Card`, `Kbd`,
-`Typography` (homepage copy), `InputGroup` (the shared `SearchBar`).
+panels and map layers), `Skeleton` (summary loading), `Button`, `Chip`, `Card`,
+`Kbd`, `Typography` (homepage copy), `InputGroup` (the shared `SearchBar`).
 
-**Constraints**: Never put a HeroUI component that leaks radius or color into the
-UI; check computed `border-radius` and non-monochrome colors after changes
-(both are audited to be 0 / grayscale in the browser). Don't fork HeroUI with
-per-component theme overrides — fix the token bridge in `globals.css` instead.
+**Constraints**: Never put a HeroUI component that leaks color into the UI; check
+computed `border-radius` (6/8/12 tiers) and non-monochrome colors after changes.
+Don't fork HeroUI with per-component theme overrides — fix the token bridge in
+`globals.css` instead.
+
+## Pattern: Mapillary Street-level Preview
+
+**Description**: Marker popups can show one inline Mapillary image above the
+external link. The popup mounts only when opened, so `MapillaryPreview` fetches
+`/api/mapillary?lat=…&lon=…` then. The server route keeps `MAPILLARY_TOKEN`
+server-side, queries a bbox under 0.01 square degrees, picks the nearest usable
+image within 500 m, caches for five minutes, and always returns a fallback deep
+link. The browser receives metadata plus signed thumbnail URLs — never the token.
+
+**Usage**: `app/workbench/mapillary-preview.tsx`, `app/api/mapillary/route.ts`,
+`lib/mapillary.ts`, `.popup-streetview-*` CSS.
+
+**Constraints**: No token, empty coverage, invalid date, missing thumbnail, an
+upstream timeout, or a failed image load must all degrade to the external
+Mapillary link — never to a broken popup or a blocked map. Thumbnails are
+short-lived; do not cache or rehost them. Keep the "Imagery © Mapillary" credit
+visible whenever an image renders.
 
 ## Pattern: Workbench Route
 

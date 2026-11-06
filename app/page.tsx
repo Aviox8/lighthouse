@@ -81,7 +81,7 @@ const CAPABILITIES = [
   {
     index: "03 / Workbench",
     title: "Maps, lists, and aggregate summaries",
-    body: "Results are plotted with Leaflet, filterable by type and operator, and capped at 5,000 features per search. Select a feature to inspect it.",
+    body: "Results are plotted with Leaflet, filterable by type and operator, and capped at 5,000 features per search. Marker popups can carry a Mapillary street-level preview when the deployment has an imagery token.",
     href: "/docs/api",
     link: "See the HTTP reference",
   },
@@ -95,6 +95,7 @@ const SOURCE_ITEMS = [
   { label: "Overpass API", href: "https://wiki.openstreetmap.org/wiki/Overpass_API" },
   { label: "Nominatim", href: "https://nominatim.openstreetmap.org/" },
   { label: "Leaflet", href: "https://leafletjs.com/" },
+  { label: "Mapillary", href: "https://www.mapillary.com/" },
   { label: "MIT license", href: "/license" },
 ];
 
@@ -127,7 +128,8 @@ export default function Page() {
           <Typography className="home-subtitle" type="body">
             Search OpenStreetMap for telecom towers, data centers, power
             plants, ports and 230+ other asset types — by place, operator, or
-            radius. Results open as a map, a list, and an aggregate summary.
+            radius. Results open as a map, a list, and an aggregate summary,
+            with optional street-level imagery on the map.
           </Typography>
 
           <div className="home-search-block">
@@ -147,7 +149,7 @@ export default function Page() {
                 <Kbd.Abbr keyValue="command" />
                 <Kbd.Content>K</Kbd.Content>
               </Kbd>
-              <span>to focus · free, no account</span>
+              <span>to focus · 230+ asset types</span>
             </p>
           </div>
 
@@ -313,8 +315,8 @@ export default function Page() {
           <div className="home-preview-foot">
             <span>Map · Leaflet</span>
             <span>Data · OpenStreetMap</span>
+            <span>Street level · Mapillary</span>
             <span>Summary · aggregate counts only</span>
-            <span>Illustrative view</span>
           </div>
         </div>
       </section>
@@ -479,15 +481,17 @@ export default function Page() {
             Point it at a place.
           </Typography>
           <p className="home-cta-sub">
-            One query opens the workbench: map, results, filters, and an
-            optional aggregate summary. No account, no install.
+            One query opens the workbench with the map, a filterable result
+            list, and an optional aggregate summary.
           </p>
           <SearchBar
             navigateTo="/workbench"
             placeholder="e.g. wind farms near Copenhagen radius:120"
             variant="cta"
           />
-          <p className="home-cta-foot">No account · No install · MIT</p>
+          <p className="home-cta-foot">
+            230+ asset types · results capped at 5,000 features
+          </p>
         </div>
       </section>
 

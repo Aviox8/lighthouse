@@ -1,5 +1,35 @@
 # Design Decisions
 
+### 2026-11-06 — Soft 8/12px corners; optional inline Mapillary previews
+
+**Status**: accepted (supersedes every "zero radius" rule in earlier entries)
+
+The zero-radius direction is retired. The user asked for subtle rounded corners
+without losing the instrument feel, so the scale is now 6px for tiny chips,
+badges, kbd and marker badges; 8px for controls (buttons, fields, inputs,
+filter/result rows, map controls); and 12px for panels (navbar, cards, popups,
+code blocks, table shells, callouts, preview frames). Tokens live once on
+`:root` and are theme-independent, so both themes share the same geometry.
+HeroUI's `rounded-3xl` buttons, `rounded-field` inputs and `rounded-2xl` chips
+resolve to the same 8px tier. Status dots and scrollbar thumbs are the only
+999px exceptions. Leaflet raster tiles and the black/white marker palette remain
+theme-exempt.
+
+`/api/mapillary` plus `MapillaryPreview` add optional street-level imagery. The
+server route reads `MAPILLARY_TOKEN`, queries a bbox under 0.01 square degrees
+(roughly 500 m), keeps the nearest usable image, and caches the lookup for five
+minutes. A missing token, empty coverage, or upstream failure returns HTTP 200
+with `image: null` and a coordinate deep link, so a popup never breaks. The
+browser receives metadata and signed thumbnail URLs only; thumbnails load from
+Mapillary's CDN and the token never reaches the client. Fetching starts when a
+popup opens, not per marker, so large result sets do not fan out. Pure helpers
+and fallbacks are covered by `lib/__tests__/mapillary.test.ts`.
+
+Content was aligned across the homepage, docs, about, legal, privacy, policy,
+terms, footer, README and `.env.example`: Mapillary is named as an optional
+source with attribution, the token is documented as server-side only, and the
+old "does not proxy Mapillary imagery" wording was removed.
+
 ### 2026-11-06 — Dual black/white themes; map layers and radius restored
 
 **Status**: accepted

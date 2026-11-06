@@ -18,11 +18,13 @@ export default function OperationsPage() {
       active="/docs/operations"
     >
       <p>
-        Lighthouse is one Next.js application with two API routes. The public
-        instance runs on Vercel, but the same build runs on any host with
-        Node.js 22 and outbound HTTPS. There is no database, no object storage,
-        and no queue: every piece of state is an in-memory cache or counter that
-        resets when the process restarts.
+        Lighthouse is one Next.js application. Its stable API is two{" "}
+        <code>POST</code> endpoints; <code>/api/nominatim</code> and{" "}
+        <code>/api/mapillary</code> are internal <code>GET</code> helpers used
+        by the UI. The public instance runs on Vercel, but the same build runs on
+        any host with Node.js 22 and outbound HTTPS. There is no database, no
+        object storage, and no queue: every piece of state is an in-memory cache
+        or counter that resets when the process restarts.
       </p>
       <div className="doc-callout doc-callout-accent">
         <p>
@@ -38,8 +40,8 @@ export default function OperationsPage() {
         </li>
         <li>
           Outbound HTTPS to Nominatim, the Overpass mirrors (or your keyed
-          overpass.ch instance), and — only if you configure summaries — the AI
-          provider you choose.
+          overpass.ch instance), and — only if you configure them — Mapillary
+          and the AI provider you choose.
         </li>
         <li>
           Overpass requests rotate through the four free global-coverage
@@ -179,6 +181,17 @@ export default function OperationsPage() {
               endpoint. Server-side only.
             </td>
           </tr>
+          <tr>
+            <td>
+              <code>MAPILLARY_TOKEN</code>
+            </td>
+            <td>—</td>
+            <td>
+              Optional Mapillary access token for inline street-level previews.
+              Without it, marker popups fall back to a public Mapillary deep
+              link. Server-side only: never use <code>NEXT_PUBLIC_</code>.
+            </td>
+          </tr>
         </tbody>
       </table>
 
@@ -278,9 +291,10 @@ npm run dev`}</CodeBlock>
       <p>
         On Vercel, import the repository and accept the detected Next.js
         defaults. Set <code>NEXT_PUBLIC_SITE_URL</code> to the deployment origin
-        and add any provider keys as server-side environment variables. Both API
-        routes declare <code>maxDuration = 30</code>; the Overpass client keeps
-        its own 22-second overall budget underneath that cap.
+        and add any provider keys as server-side environment variables. Search
+        and summary declare <code>maxDuration = 30</code>;{" "}
+        <code>/api/mapillary</code> declares <code>10</code>. The Overpass client
+        keeps its own 22-second overall budget underneath the search cap.
       </p>
       <p>
         Any other Node host works the same way: build once, run{" "}
@@ -312,6 +326,15 @@ npm run dev`}</CodeBlock>
         <code>bounds</code> means the deployment is functional. Error codes are
         documented in the <Link href="/docs/api">API reference</Link>.
       </p>
+      <CodeBlock title="street-level helper" lang="bash">{`curl -s "http://localhost:3000/api/mapillary?lat=52.52&lon=13.405"`}</CodeBlock>
+      <p>
+        Without <code>MAPILLARY_TOKEN</code> this returns{" "}
+        <code>configured: false</code> and a fallback URL; with a valid token it
+        returns <code>status: &quot;ok&quot;</code> when coverage exists or{" "}
+        <code>status: &quot;empty&quot;</code> when it does not. Either way the
+        response is <code>200</code> — the popup never turns missing imagery
+        into a broken map.
+      </p>
 
       <h2>State and caching</h2>
       <table>
@@ -335,6 +358,15 @@ npm run dev`}</CodeBlock>
             <td>Geocoding results</td>
             <td>24 hours</td>
             <td>Keyed by the normalized place string, same map and cap.</td>
+          </tr>
+          <tr>
+            <td>Mapillary lookups</td>
+            <td>5 minutes (45 s on failure)</td>
+            <td>
+              Keyed by latitude/longitude rounded to four decimals, capped at
+              400 entries. Stores image metadata and signed thumbnail URLs;
+              never stores the token.
+            </td>
           </tr>
           <tr>
             <td>AI summaries</td>
@@ -389,6 +421,18 @@ npm run dev`}</CodeBlock>
             <td>
               Browser-side via Leaflet, fetched from{" "}
               <code>tile.openstreetmap.org</code>.
+            </td>
+          </tr>
+          <tr>
+            <td>Mapillary</td>
+            <td>
+              bbox smaller than 0.01 sq deg, 5 s timeout, one lookup per opened
+              popup
+            </td>
+            <td>
+              <code>app/api/mapillary/route.ts</code>; five-minute cache. The
+              token stays server-side and thumbnails load from Mapillary&rsquo;s
+              CDN.
             </td>
           </tr>
           <tr>
@@ -477,6 +521,17 @@ npm run dev`}</CodeBlock>
             </td>
           </tr>
           <tr>
+            <td>Inline street-level imagery never appears</td>
+            <td>
+              <code>MAPILLARY_TOKEN</code> unset or invalid, or no imagery near
+              the asset.
+            </td>
+            <td>
+              Set the token and redeploy; check server logs for the Mapillary
+              HTTP status. The external Mapillary link works either way.
+            </td>
+          </tr>
+          <tr>
             <td>Cache misses across requests</td>
             <td>Requests landed on different instances or a cold start.</td>
             <td>
@@ -499,9 +554,10 @@ npm run dev`}</CodeBlock>
       <h2>Security and exposure</h2>
       <ul>
         <li>
-          Provider keys and <code>OVERPASS_CH_KEY</code> are server-side secrets.
-          Do not expose them through <code>NEXT_PUBLIC_*</code> variables or
-          client components.
+          Provider keys, <code>OVERPASS_CH_KEY</code>, and{" "}
+          <code>MAPILLARY_TOKEN</code> are server-side secrets. Do not expose
+          them through <code>NEXT_PUBLIC_*</code> variables or client
+          components.
         </li>
         <li>
           <code>/api/summary</code> is unauthenticated by design. If you expose a
@@ -566,6 +622,16 @@ npm run dev`}</CodeBlock>
           </a>{" "}
           — the data obligation, covered in the{" "}
           <Link href="/legal">legal notices</Link>.
+        </li>
+        <li>
+          <a
+            href="https://www.mapillary.com/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Mapillary terms
+          </a>{" "}
+          — apply when street-level imagery is enabled.
         </li>
       </ul>
       <p>

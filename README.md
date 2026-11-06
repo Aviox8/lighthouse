@@ -1,6 +1,6 @@
 # Lighthouse
 
-Geospatial infrastructure intelligence platform for discovering and analyzing physical-world assets using OpenStreetMap data, with optional AI-assisted aggregate summaries.
+Geospatial infrastructure intelligence platform for discovering and analyzing physical-world assets using OpenStreetMap data, with optional AI-assisted aggregate summaries and optional Mapillary street-level imagery.
 
 
 ## Overview
@@ -35,21 +35,25 @@ flowchart TB
         ResultList["ResultList"]
         SummaryCard["SummaryCard"]
         MapView["MapView — Leaflet.js"]
+        MapillaryPreview["MapillaryPreview — popup imagery"]
     end
 
     subgraph BE["Backend"]
         route["/api/search — Request Handler"]
         summaryRoute["/api/summary — Summary Handler"]
+        mapillaryRoute["/api/mapillary — Imagery Helper"]
         parser["parser.ts — NLP Engine"]
         geo["geo.ts — Geocoding"]
         overpass["overpass.ts — OSM Query Builder"]
         summary["summary.ts — Provider Chain"]
+        mapillary["mapillary.ts — Nearest-image Lookup"]
         cache["cache.ts — Cache Layer"]
     end
 
     subgraph EX["External APIs"]
         Nominatim["Nominatim — Geocoding API"]
         OverpassAPI["Overpass API — OSM Data"]
+        MapillaryAPI["Mapillary — Optional Imagery"]
         Exa["Exa — Optional Grounding"]
         LLM["OpenRouter / Ollama — Optional LLM"]
     end
@@ -57,21 +61,25 @@ flowchart TB
     Homepage -->|"navigate"| Workbench
     Workbench & Filters & ResultList & MapView -->|"POST /api/search"| route
     SummaryCard -->|"POST /api/summary"| summaryRoute
+    MapView --> MapillaryPreview
+    MapillaryPreview -->|"GET /api/mapillary"| mapillaryRoute
 
     route -->|"parse query"| parser
     route -->|"resolve location"| geo
     route -->|"fetch POIs"| overpass
     route <-->|"read / write"| cache
     summaryRoute -->|"aggregate stats only"| summary
+    mapillaryRoute -->|"nearest image"| mapillary
 
     geo -->|"geocode"| Nominatim
     overpass -->|"QL query"| OverpassAPI
+    mapillary -.->|"optional"| MapillaryAPI
     summary -.->|"optional"| Exa
     summary -.->|"optional"| LLM
 
-    class Homepage,Workbench,Filters,ResultList,SummaryCard,MapView frontend
-    class route,summaryRoute,parser,geo,overpass,summary,cache backend
-    class Nominatim,OverpassAPI,Exa,LLM external
+    class Homepage,Workbench,Filters,ResultList,SummaryCard,MapView,MapillaryPreview frontend
+    class route,summaryRoute,mapillaryRoute,parser,geo,overpass,summary,mapillary,cache backend
+    class Nominatim,OverpassAPI,MapillaryAPI,Exa,LLM external
 ```
 
 ## AI Summaries
@@ -100,6 +108,10 @@ Geographic resolution uses the [Nominatim](https://nominatim.openstreetmap.org/)
 Infrastructure queries execute against the [Overpass API](https://overpass-api.de/), which provides read-only access to OSM data.
 
 With `OVERPASS_CH_KEY` set, queries run against [overpass.ch](https://overpass.ch/) first (a keyed instance of the same API) and fall back to the public mirrors. Geocoding then prefers its Nominatim-compatible endpoint too; the app still serializes geocoding requests. The key is server-side only: never expose it as `NEXT_PUBLIC_*`, since it travels in the request path.
+
+### Mapillary (Optional)
+
+When `MAPILLARY_TOKEN` is set, opening a marker popup requests the nearest [Mapillary](https://www.mapillary.com/) image within 500 m and shows a thumbnail, capture date, and distance. Without a token, the popup links to Mapillary at the asset's coordinates. The token is server-side only — never prefix it with `NEXT_PUBLIC_`. Thumbnails are signed, short-lived URLs loaded directly from Mapillary's CDN; Lighthouse stores no imagery.
 
 ### Exa (Optional)
 
@@ -499,7 +511,7 @@ type:airport country:france
 
 ```bash
 npm install
-cp .env.example .env.local   # optional; only needed for AI providers
+cp .env.example .env.local   # optional; AI providers and Mapillary imagery
 npm run dev
 ```
 
@@ -524,7 +536,8 @@ app/
 │   ├── filters.tsx       # route-private filter panel
 │   ├── result-list.tsx   # route-private result list
 │   ├── summary-card.tsx  # route-private aggregate summary card
-│   └── map-view.tsx      # route-private Leaflet map
+│   ├── map-view.tsx      # route-private Leaflet map
+│   └── mapillary-preview.tsx  # inline street-level preview in marker popups
 ├── types/catalog.tsx     # route-private catalog island of /types
 ├── layout.tsx            # Root layout (<Analytics /> only)
 ├── globals.css           # The entire design system (monochrome tokens + HeroUI bridge)
@@ -543,6 +556,7 @@ app/
 └── api/
     ├── search/route.ts   # POST /api/search
     ├── summary/route.ts  # POST /api/summary (aggregate stats only)
+    ├── mapillary/route.ts # GET /api/mapillary (optional imagery helper)
     └── nominatim/route.ts
 
 components/
@@ -555,9 +569,10 @@ lib/
 ├── parser.ts             # Query grammar: phrases + structured tokens
 ├── geo.ts                # Nominatim integration, 1 req/s throttle
 ├── overpass.ts           # Overpass queries, mirrors, 5,000-feature cap
+├── mapillary.ts          # bbox, nearest-image selection, Mapillary links
 ├── summary.ts            # Provider chain + rate limits + caching
 ├── cache.ts              # In-memory search, geo and summary caches
-└── __tests__/            # parser.ts, overpass.ts, summary.ts suites
+└── __tests__/            # parser, overpass, summary and mapillary suites
 ```
 
 ## Site Routes
@@ -595,7 +610,7 @@ vercel
 
 ### Environment Variables
 
-No environment variables are required. Without provider keys, Lighthouse uses the deterministic local summary and public OpenStreetMap APIs.
+No environment variables are required. Without provider keys, Lighthouse uses the deterministic local summary and public OpenStreetMap APIs. Without `MAPILLARY_TOKEN`, popups fall back to external Mapillary links.
 
 See `.env.example` for optional provider, overpass.ch, limit, and site-URL configuration. Provider requests are server-side; keys are never exposed to the browser.
 
@@ -608,6 +623,7 @@ See `.env.example` for optional provider, overpass.ch, limit, and site-URL confi
 | `OLLAMA_BASE_URL` | Local or self-hosted Ollama base URL |
 | `OLLAMA_MODEL` | Ollama model; auto-discovered if omitted |
 | `OVERPASS_CH_KEY` | Optional overpass.ch key: preferred Overpass and geocoding instance |
+| `MAPILLARY_TOKEN` | Optional Mapillary token for inline street-level previews (server-side only) |
 | `EXA_API_KEY` | Optional Exa grounding and final answer fallback |
 | `EXA_SEARCH_TYPE` | Exa search type (default `auto`) |
 | `EXA_NUM_RESULTS` | Grounding results per summary (default 4) |
@@ -622,6 +638,7 @@ See `.env.example` for optional provider, overpass.ch, limit, and site-URL confi
 
 - Nominatim: 1 request/second (enforced by Nominatim usage policy)
 - Overpass API: Fair use, avoid heavy queries
+- Mapillary: one lookup per opened popup, 5-minute in-memory cache
 - AI summaries: local fallback is unlimited; provider calls are rate-limited as described above
 
 ## Responsible Use
@@ -636,6 +653,7 @@ This tool accesses publicly available OpenStreetMap data. Users must:
 6. Not perform bulk automated queries that overload public infrastructure
 7. For issues regarding the map, please refer to [https://www.openstreetmap.org/fixthemap](https://www.openstreetmap.org/fixthemap)
 8. Treat AI summaries as unverified context, not as an authoritative assessment
+9. Keep the Mapillary credit when street-level imagery is enabled, and respect [Mapillary's terms](https://www.mapillary.com/terms)
 
 The presence or absence of infrastructure in OSM should not be taken as authoritative. Always verify critical information through official sources.
 

@@ -5,7 +5,7 @@ import StaticPage from "@/components/StaticPage";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "What Lighthouse is, what it does not do, and how it handles OpenStreetMap data.",
+    "What Lighthouse is, what it does not do, and how it handles OpenStreetMap data and optional Mapillary imagery.",
 };
 
 export default function AboutPage() {
@@ -24,7 +24,9 @@ export default function AboutPage() {
         across 30+ categories. Type a query in plain language (
         <code>wind farms near copenhagen</code>) or structured form (
         <code>type:data_center operator:google region:california</code>) and it
-        maps, filters, and summarizes what OpenStreetMap knows.
+        maps, filters, and summarizes what OpenStreetMap knows. Marker popups
+        can also show a street-level image from Mapillary when the operator has
+        configured a token.
       </p>
       <p>
         There is no database behind it. Every search is executed live against
@@ -68,8 +70,11 @@ export default function AboutPage() {
         geocoded (Nominatim, throttled to 1 request/second), executed against
         Overpass with automatic mirror failover, and returned as a bounded
         result set of type/operator statistics, map bounds, and individual
-        assets. The optional summary step receives aggregates only. Exact
-        details live in the <Link href="/docs">documentation</Link>.
+        assets. The optional summary step receives aggregates only. If a{" "}
+        <code>MAPILLARY_TOKEN</code> is configured, opening a marker popup
+        performs one small server-side Mapillary lookup for the nearest image;
+        without it, the popup links to Mapillary at the asset coordinates.
+        Exact details live in the <Link href="/docs">documentation</Link>.
       </p>
 
       <h2>Principles</h2>
@@ -118,9 +123,12 @@ export default function AboutPage() {
       </p>
       <h3>Do I need an account or API keys?</h3>
       <p>
-        No. Without configuration, every feature works except AI summaries,
-        which degrade to a deterministic local summary. Self-hosters can bring
-        their own OpenRouter / Ollama / Exa keys.
+        No. Without configuration, search, maps, filters, and local summaries
+        all work. AI summaries use a deterministic local fallback when no
+        provider key exists; self-hosters can bring their own OpenRouter /
+        Ollama / Exa keys. Inline Mapillary previews additionally require a
+        server-side <code>MAPILLARY_TOKEN</code> — without it, the popup falls
+        back to a public Mapillary link.
       </p>
       <h3>Why can&rsquo;t I extract everything in a large country?</h3>
       <p>
@@ -132,7 +140,8 @@ export default function AboutPage() {
       <h3>Where does the data come from?</h3>
       <p>
         © OpenStreetMap contributors, ODbL, via the Overpass API; geocoding via
-        Nominatim. Attribution details in the{" "}
+        Nominatim. Street-level imagery, when enabled, comes from Mapillary and
+        is © Mapillary contributors. Attribution details in the{" "}
         <Link href="/legal">legal notices</Link>.
       </p>
     </StaticPage>

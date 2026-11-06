@@ -37,9 +37,14 @@ and marker badges are intentionally exempt.
 grids on feature grids (gap shows the border color).
 
 ## Radius
-Zero everywhere — --radius-sm/--radius/--radius-lg are all 0, and nothing
-(menus, popups, chips, map controls) is exempted. Corner radius is never used
-for emphasis or polish.
+Theme-independent corner scale on `:root`:
+- 6px — tiny chips, badges, kbd, inline code, map marker badges
+- 8px — buttons, fields, inputs, result/filter rows, nav mark, map controls, preview links
+- 12px — cards, panels, popups, table shells, callouts, navbar, preview frames
+- 999px — status dots and scrollbar thumbs only; never interactive pills
+
+Map tiles and the black/white marker colours stay exempt; their corners are set
+to sit inside the same scale (6px badge, 8px controls, 12px popup).
 
 ## Shadows
 --shadow-lg: 0 24px 64px rgba(0,0,0,.8) — popovers/modals only; leaflet zoom

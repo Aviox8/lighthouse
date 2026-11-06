@@ -28,8 +28,9 @@ export default function TermsPage() {
       <p>
         Lighthouse queries OpenStreetMap data through public community
         infrastructure (Overpass API, Nominatim) and displays it on a map,
-        with optional machine-generated aggregate summaries. It is free, no
-        account is required, and nothing you type is stored.
+        with optional machine-generated aggregate summaries and optional
+        Mapillary street-level previews. It is free, no account is required,
+        and nothing you type is stored.
       </p>
 
       <h2>2. Acceptable use</h2>
@@ -66,6 +67,12 @@ export default function TermsPage() {
           relying on any result, especially for anything legal, financial, or
           safety-critical.
         </li>
+        <li>
+          Street-level previews, when enabled, come from Mapillary and are ©
+          Mapillary contributors, subject to Mapillary&rsquo;s terms. Coverage
+          is not guaranteed, capture dates vary, and an image may be several
+          hundred metres from the asset.
+        </li>
       </ul>
 
       <h2>4. AI summaries</h2>
@@ -79,11 +86,13 @@ export default function TermsPage() {
 
       <h2>5. Availability</h2>
         <p>
-        There is no SLA. Upstreams (public Overpass mirrors, Nominatim) are
-        shared infrastructure and fail or throttle at times; errors surface
-        honestly when they do. The service can change or be suspended at any
-        time, without notice. <Link href="/docs/operations">Self-hosting</Link>{" "}
-        removes this dependency entirely.
+        There is no SLA. Upstreams (public Overpass mirrors, Nominatim,
+        Mapillary) are shared infrastructure and fail or throttle at times;
+        errors surface honestly when they do, and missing imagery degrades to
+        an external link. The service can change or be suspended at any time,
+        without notice.{" "}
+        <Link href="/docs/operations">Self-hosting</Link> removes this
+        dependency entirely.
       </p>
 
       <h2>6. Liability</h2>

@@ -5,7 +5,7 @@ import StaticPage from "@/components/StaticPage";
 export const metadata: Metadata = {
   title: "Legal notices",
   description:
-    "Attribution and legal notices for Lighthouse: OpenStreetMap data terms, tile and geocoding usage policies, AI disclosure, trademarks, and acceptable use.",
+    "Attribution and legal notices for Lighthouse: OpenStreetMap data terms, tile and geocoding usage policies, Mapillary imagery, AI disclosure, trademarks, and acceptable use.",
 };
 
 export default function LegalPage() {
@@ -112,6 +112,38 @@ export default function LegalPage() {
         </li>
       </ul>
 
+      <h2>Street-level imagery</h2>
+      <p>
+        Inline street-level previews are optional and come from{" "}
+        <a
+          href="https://www.mapillary.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Mapillary
+        </a>
+        . When a preview is enabled, opening a marker popup sends that
+        asset&rsquo;s coordinates from the Lighthouse server to the Mapillary
+        API; the thumbnail itself loads from Mapillary&rsquo;s CDN in your
+        browser. Images are © Mapillary contributors and subject to Mapillary&rsquo;s
+        terms. Coverage is not guaranteed, and the nearest image can be several
+        hundred metres from the asset — check the distance shown with the
+        preview.
+      </p>
+      <ul>
+        <li>
+          Keep the &ldquo;Imagery © Mapillary&rdquo; credit when reusing a
+          preview.
+        </li>
+        <li>
+          Lighthouse stores no copy of the imagery; only short-lived signed
+          thumbnail URLs pass through the lookup cache.
+        </li>
+        <li>
+          Lighthouse is not affiliated with, nor endorsed by, Mapillary.
+        </li>
+      </ul>
+
       <h2>AI summary disclosure</h2>
       <p>
         Aggregate summaries are machine-generated, and the UI always states
@@ -126,9 +158,10 @@ export default function LegalPage() {
       <h2>Trademarks</h2>
       <p>
         Product names referenced in this interface — OpenStreetMap, Overpass,
-        Nominatim, Leaflet, Next.js, Vercel, OpenRouter, Ollama, Exa — belong
-        to their respective owners. No affiliation or endorsement is claimed
-        unless stated. The Lighthouse name and interface itself are provided
+        Nominatim, Mapillary, Esri, OpenTopoMap, Leaflet, Next.js, Vercel,
+        OpenRouter, Ollama, Exa — belong to their respective owners. No
+        affiliation or endorsement is claimed unless stated. The Lighthouse
+        name and interface itself are provided
         under the MIT license; be decent about not passing the project off as
         yours.
       </p>

@@ -37,6 +37,10 @@ export default function PrivacyPage() {
           AI summaries receive aggregate statistics only — never names,
           coordinates, or tags of individual results.
         </li>
+        <li>
+          Optional street-level previews send only the selected asset&rsquo;s
+          coordinates to Mapillary, and only when you open that marker.
+        </li>
       </ul>
 
       <h2>What a search sends, and where</h2>
@@ -101,6 +105,24 @@ export default function PrivacyPage() {
               OSM tile policy applies
             </td>
           </tr>
+          <tr>
+            <td>
+              <a
+                href="https://www.mapillary.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Mapillary
+              </a>
+            </td>
+            <td>Nearest street-level image (server lookup + CDN thumbnail)</td>
+            <td>
+              Only when a marker popup is opened and the operator configured{" "}
+              <code>MAPILLARY_TOKEN</code>. The lookup sends the asset&rsquo;s
+              coordinates; the thumbnail loads directly from Mapillary. No
+              token or user identifier is exposed to the browser
+            </td>
+          </tr>
         </tbody>
       </table>
       <p>
@@ -160,7 +182,10 @@ export default function PrivacyPage() {
         Run Lighthouse yourself and every data flow is yours: no analytics
         (remove the tag), no providers (unset the keys — the local summary is
         the default), and your own Overpass/Nominatim endpoints if you want to
-        remove even upstream OSM services from the equation. See the{" "}
+        remove even upstream OSM services from the equation. Leave{" "}
+        <code>MAPILLARY_TOKEN</code> unset to skip street-level lookups
+        entirely; popups then show only an external link that opens when
+        clicked. See the{" "}
         <Link href="/docs/operations#environment-variables">
           environment reference
         </Link>
@@ -170,8 +195,9 @@ export default function PrivacyPage() {
       <h2>Data retention</h2>
       <p>
         Nothing about you is stored: no database, no search logs, no request
-        bodies at rest. In-memory caches (summary responses, rate counters)
-        are the only state, and they reset on every redeploy or restart.
+        bodies at rest. In-memory caches (summary responses, rate counters, and
+        coordinate-keyed Mapillary lookups for five minutes) are the only
+        state, and they reset on every redeploy or restart.
       </p>
 
       <h2>Changes</h2>
