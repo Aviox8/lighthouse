@@ -27,9 +27,8 @@ export default function DocsPage() {
       </p>
       <div className="doc-callout doc-callout-accent">
         <p>
-          <strong>You will learn</strong> — how a search moves through the
-          system, the full query grammar, and the limits that keep the shared
-          upstream services healthy.
+          The public instance is a shared, keyless service. Keep queries scoped
+          to a place and a type — it is not a bulk data export endpoint.
         </p>
       </div>
 
@@ -57,13 +56,43 @@ export default function DocsPage() {
           <strong>overpass.ts</strong> — executes the query against public
           Overpass mirrors with automatic failover; a dedicated keyed instance
           can be configured via <code>OVERPASS_CH_KEY</code>. Results are capped
-          at 5,000 features; each endpoint gets a 15-second timeout.
+          at 5,000 features; each mirror gets a 10-second timeout and the
+          request moves on to the next one.
         </li>
         <li>
           <strong>summary.ts</strong> — optional. Receives only aggregate stats
           (total, top-12 types, top-12 operators, truncation flag) — never
           individual assets. The complete payload is documented in the{" "}
           <Link href="/docs/api">API reference</Link>.
+        </li>
+      </ul>
+
+      <h2>Map</h2>
+      <p>
+        The workbench map is Leaflet on raster tiles. The layer control switches
+        between OpenStreetMap streets, Esri World Imagery satellite, and
+        OpenTopoMap terrain; all three are public endpoints that need no key.
+        The map deliberately keeps its native tile colours in both interface
+        themes.
+      </p>
+      <ul>
+        <li>
+          <strong>Framing</strong> — the viewport fits the query&rsquo;s
+          <code>bounds</code>, a <code>[south, north, west, east]</code> box
+          returned by the search API.
+        </li>
+        <li>
+          <strong>Radius</strong> — a <code>near:</code> search returns a box
+          around the anchor and draws the exact radius circle on the map.
+        </li>
+        <li>
+          <strong>Markers</strong> — each marker carries a glyph for its asset
+          family; selecting a result from the list recentres the map.
+        </li>
+        <li>
+          <strong>Street level</strong> — the marker popup links to Mapillary at
+          the asset&rsquo;s coordinates. The link opens without an account or
+          token; Lighthouse does not proxy Mapillary imagery.
         </li>
       </ul>
 

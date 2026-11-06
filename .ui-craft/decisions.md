@@ -1,5 +1,44 @@
 # Design Decisions
 
+### 2026-11-06 — Dual black/white themes; map layers and radius restored
+
+**Status**: accepted
+
+The site now has a real light theme alongside the original black one. `data-theme`
+on `<html>` selects a token block (`:root, [data-theme="dark"]` and
+`[data-theme="light"]`), the `.dark` class stays in sync for HeroUI, and an
+inline head script reads `localStorage["lighthouse-theme"]` before paint so
+there is no flash. The Navbar toggle (Sun/Moon, also in the mobile drawer) is a
+`useSyncExternalStore` subscriber — no setState-in-effect — and the theme
+originates on the client, with the server assuming dark. The map is explicitly
+theme-exempt: tiles and the black/white marker badges keep their native
+colours, while Leaflet chrome follows the tokens.
+
+The layer switch is back with keyless endpoints: Streets (OSM),
+Satellite (Esri World Imagery) and Terrain (OpenTopoMap), rendered as a sharp
+HeroUI `ToggleButtonGroup` overlay. `FitBoundsOnMount` had been passing
+`[south, north, west, east]` bounds straight to Leaflet as corner pairs, which
+framed a skewed box; it now maps them to `[[south, west], [north, east]]`.
+`near:` searches draw the radius as a black outer ring plus a dashed white
+inner ring, and fit the returned box. Markers are 22px white badges with
+black asset-family glyphs (28px with inverted colours when selected) instead
+of 10px squares that disappeared into the map. Popup links open Mapillary at
+the asset coordinates; there is no token or proxy.
+
+The Overpass fleet was corrected to the four free **global-coverage** public
+instances from the OSM wiki (`overpass-api.de`, `lz4.overpass-api.de`,
+`overpass.private.coffee`, `maps.mail.ru`). Rotation starts each request on a
+different mirror; per-mirror timeout is 10s inside the existing 22s budget.
+`overpass.kumi.systems` (an alias of private.coffee), dead `overpass.be` /
+`overpass.nchc.org.tw`, and Switzerland-only `overpass.osm.ch` were removed —
+a regional mirror would return an empty result elsewhere and look like success.
+
+Docs prose moved closer to rendered Markdown: 20px underlined h2 rules, 15px
+body text at 1.72 line-height, quieter inline code, row-rule tables, and
+blockquote/callout rules. Copy was tightened across the homepage, about page,
+metadata and footer (no "You will learn" scaffolding, no "dense, dark" after
+light shipped).
+
 ### 2026-11-06 — OSM tiles back to native colour; structured queries honour free-text scope
 
 **Status**: accepted (supersedes the tile-filter half of "Floating sharp navbar; OSM tiles stay, filter fixed")

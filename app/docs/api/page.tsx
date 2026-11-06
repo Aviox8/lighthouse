@@ -55,7 +55,7 @@ Content-Type: application/json
   "results": [{ "id": "node/123", "name": "…", "type": "communication",
                 "operator": "…", "lat": 12.97, "lon": 77.59, "tags": {} }],
   "stats":   { "total": 1843, "types": { … }, "operators": { … } },
-  "bounds":  [11.59, 74.05, 18.44, 78.59],
+  "bounds":  [11.59, 18.44, 74.05, 78.59],
   "query":   { "type": "telecom", "operator": null, "near": null,
                "region": "karnataka", "radius": 50 },
   "truncated": false
@@ -67,7 +67,7 @@ Content-Type: application/json
           the UI shows a warning instead of pretending the list is complete.
         </li>
         <li>
-          <code>bounds</code> is <code>[south, west, north, east]</code> and is
+          <code>bounds</code> is <code>[south, north, west, east]</code> (Nominatim order) and is
           used to fit the map viewport.
         </li>
         <li>
@@ -189,7 +189,7 @@ Content-Type: application/json
               <code>TIMEOUT</code>
             </td>
             <td>504</td>
-            <td>Upstream Overpass timeout (15s per mirror).</td>
+            <td>Every Overpass mirror timed out (10s each) or the 22s budget expired.</td>
           </tr>
           <tr>
             <td>
@@ -241,7 +241,7 @@ Content-Type: application/json
           the stats payload. Local summaries are never cached.
         </li>
         <li>
-          <strong>Overpass:</strong> 5,000-feature cap per query; 15s timeout per
+          <strong>Overpass:</strong> 5,000-feature cap per query; 10s timeout per
           mirror with failover and a 22s overall budget.
         </li>
       </ul>

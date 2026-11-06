@@ -1,12 +1,14 @@
 import { Asset, ASSET_TYPE_MAP } from './types';
 
-// Public mirrors, used on their own or as a fallback behind a keyed endpoint.
-// They are often overloaded (HTTP 502 / timeouts), so they are not the first choice.
+// Public mirrors with global OSM coverage (OSM wiki, November 2026), rotated
+// on every call so load is spread instead of hammering the first one.
+// Do not add regional mirrors here: a Switzerland- or UK-only instance would
+// return an empty result for the rest of the world and pass it off as success.
 const PUBLIC_OVERPASS_APIS = [
   'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
 ];
 
 // Optional dedicated Overpass instance (overpass.ch). Set OVERPASS_CH_KEY on the
@@ -20,8 +22,17 @@ interface OverpassEndpoint {
   keyed?: boolean;
 }
 
+// Rotation offset for the public fleet: every request starts on a different
+// mirror, so sustained usage spreads across Overpass instead of flattening one.
+let publicFleetOffset = 0;
+
 function getOverpassEndpoints(): OverpassEndpoint[] {
-  const endpoints: OverpassEndpoint[] = PUBLIC_OVERPASS_APIS.map((url) => ({
+  const rotated = PUBLIC_OVERPASS_APIS.map(
+    (_, i) => PUBLIC_OVERPASS_APIS[(i + publicFleetOffset) % PUBLIC_OVERPASS_APIS.length],
+  );
+  publicFleetOffset = (publicFleetOffset + 1) % PUBLIC_OVERPASS_APIS.length;
+
+  const endpoints: OverpassEndpoint[] = rotated.map((url) => ({
     url,
     label: new URL(url).hostname,
   }));
@@ -39,7 +50,7 @@ function getOverpassEndpoints(): OverpassEndpoint[] {
 }
 
 // Keep well under Vercel's 30s serverless cap, including Nominatim and JSON overhead.
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = 10000;
 const OVERALL_BUDGET_MS = 22000;
 const USER_AGENT = 'Lighthouse/1.0 (+https://github.com/Aviox8/lighthouse)';
 const MAX_TAG_KEY_LENGTH = 128;
@@ -134,7 +145,7 @@ export function buildOverpassQuery(
   }
 
   const query = `
-[out:json][timeout:12][maxsize:50000000];
+[out:json][timeout:9][maxsize:50000000];
 (
 ${unionParts.join('\n')}
 );
@@ -162,7 +173,7 @@ export function buildMultiTypeQuery(
   // hit the server's query timeout and returned nothing, while `nwr` returned
   // the results. Cheaper either way, and never worse.
   const query = `
-[out:json][timeout:12][maxsize:50000000];
+[out:json][timeout:9][maxsize:50000000];
 (
   nwr["operator"~"${escapeOverpassString(operator)}",i]${locationFilter};
 );

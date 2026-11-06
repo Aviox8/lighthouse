@@ -26,9 +26,8 @@ export default function OperationsPage() {
       </p>
       <div className="doc-callout doc-callout-accent">
         <p>
-          <strong>You will learn</strong> — which environment variables exist,
-          where state lives, what the upstream limits are, and how to diagnose
-          the errors the workbench surfaces.
+          State is per process. On a serverless host, caches and rate-limit
+          counters are cold after idle, and two instances do not share them.
         </p>
       </div>
 
@@ -41,6 +40,15 @@ export default function OperationsPage() {
           Outbound HTTPS to Nominatim, the Overpass mirrors (or your keyed
           overpass.ch instance), and — only if you configure summaries — the AI
           provider you choose.
+        </li>
+        <li>
+          Overpass requests rotate through the four free global-coverage
+          instances — <code>overpass-api.de</code>,{" "}
+          <code>lz4.overpass-api.de</code>,{" "}
+          <code>overpass.private.coffee</code> and{" "}
+          <code>maps.mail.ru</code> — with sequential failover. Regional
+          mirrors are deliberately excluded: they would return empty results
+          outside their coverage area.
         </li>
         <li>
           No database, cache server, or storage bucket. Plan for per-instance
@@ -369,7 +377,7 @@ npm run dev`}</CodeBlock>
           <tr>
             <td>Overpass</td>
             <td>
-              15 s per mirror, 22 s overall, 5,000 features per search
+              10 s per mirror, 22 s overall, 5,000 features per search
             </td>
             <td>
               <code>overpass.ts</code> timeout and truncation handling.

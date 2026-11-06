@@ -64,7 +64,7 @@ export default function PolicyPage() {
         <li>
           <strong>Bulk extraction.</strong> Do not reconstruct a regional,
           national, or global asset database through the interface or API. The
-          5,000-feature cap and 15-second upstream timeouts make this the wrong
+          5,000-feature cap and 10-second upstream timeouts make this the wrong
           tool anyway.
         </li>
         <li>
@@ -148,7 +148,7 @@ export default function PolicyPage() {
             <td>Overpass API</td>
             <td>
               Fair use. Public mirrors may throttle or reject heavy queries;
-              the 15-second per-mirror timeout and 5,000-feature cap exist to
+              the 10-second per-mirror timeout and 5,000-feature cap exist to
               keep queries proportionate.
             </td>
           </tr>
@@ -179,7 +179,7 @@ export default function PolicyPage() {
       <h2>Limits and enforcement</h2>
       <ul>
         <li>
-          <strong>Search:</strong> 5,000 features per query; 15 seconds per
+          <strong>Search:</strong> 5,000 features per query; 10 seconds per
           Overpass mirror with a 22-second overall budget; 5-minute in-memory
           cache.
         </li>
